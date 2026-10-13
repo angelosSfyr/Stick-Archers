@@ -52,6 +52,11 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
   renaming an option value silently resets it to the default.
 - All sound is synthesized (`src/audio/`); there are no asset files.
 
+## Git
+- Never run git commands that change history or the remote (commit, push, branch, merge, rebase, stash...):
+  the developer does all of that. Read-only git (status, diff, log) is fine.
+- When done with a change, suggest a short commit message (one line) for the developer to use.
+
 ## Style
 - Match existing code: short comments explaining *why*, compact one-line object literals,
   `const` arrow helpers, no classes.
