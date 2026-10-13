@@ -32,6 +32,9 @@ export function launch(f) {
   if (f.bot) { f.bot.phase = 'think'; f.bot.timer = f.minion ? rand(0.6, 1.6) : rand(0.3, 0.9); }
 }
 
+// Is f's shield up against this hit? A bare hand (`noFire`) can't stop fire.
+const shielded = (f, fire) => f.blocking && !(fire && f.shield.noFire);
+
 // A raised shield soaks up damage from the front. Returns the damage that gets through
 // (only once the shield breaks). A burst shield burns it all up and never breaks.
 // A hand lets a share through right here (hurting the fighter) and never breaks.
@@ -85,11 +88,12 @@ function hitFighter(f, zone, x, y, a) {
     if (kind.blast) { explode(x, y, a.owner, f, kind.blast); a.kind = 'normal'; }
     return 'blocked';
   }
+  if (zone === 'shield' && !shielded(f, kind.burn)) zone = 'torso';   // fire through the giant's raised hands
   const instantKill = zone === 'head' && !kind.noInstantKill;
   const part = zone === 'shield' ? 'torso' : zone;
   let dmg = a.owner.weapon.damage[part];
   if (kind.damageMul) dmg = Math.round(dmg * kind.damageMul);
-  if (f.blocking && (zone === 'shield' || a.vx * f.facing < 0)) {
+  if (shielded(f, kind.burn) && (zone === 'shield' || a.vx * f.facing < 0)) {
     if (f.shield.burst && !kind.ko) { shieldTakes(f, dmg, a.owner); embers(x, y, 14); return 'burned'; }
     sparks(x, y, ang, 10);
     if (kind.ko) M.shake = Math.max(M.shake, 0.5);
@@ -142,7 +146,7 @@ function explode(x, y, owner, spare, blast) {
       continue;
     }
     let dmg = Math.round(lerp(blast.damage, 10, d / blast.radius));
-    if (f.blocking && fromFront(f, x) && !(dmg = shieldTakes(f, dmg, owner))) continue;
+    if (shielded(f, blast.fire) && fromFront(f, x) && !(dmg = shieldTakes(f, dmg, owner))) continue;
     M.popups.push({ x: f.x, y: f.y - 170, text: `BLAST  -${dmg}`, t: 0 });
     bleed(f, f.x, f.y - 70, Math.atan2(f.y - 70 - y, f.x - x), 0.8);
     hurt(f, dmg, owner);

@@ -62,7 +62,7 @@ export const ARROWS = {
   // the pyromancer's power-ups: still fireballs, so they can't headshot either
   heavyFireball: { damageMul: 1.5, alwaysKnocks: true, knock: 1.3, noStick: true, noInstantKill: true,
                    burn: { radius: 90, time: 3, dps: 12, after: 2 }, look: { fireball: 13 } },
-  fireBomb:      { blast: { radius: 150, damage: 45 }, knock: 0, noStick: true, noInstantKill: true,
+  fireBomb:      { blast: { radius: 150, damage: 45, fire: true }, knock: 0, noStick: true, noInstantKill: true,
                    burn: { radius: 150, time: 3, dps: 12, after: 2 }, look: { fireball: 12 } },
   // the giant's: no headshots either
   boulder:      { knock: 1.4, noStick: true, noInstantKill: true, hitRadius: 18, look: { boulder: 20 } },
@@ -85,5 +85,6 @@ export const ARROWS = {
 export const SHIELDS = {
   buckler:  { name: 'Buckler', durability: 90, regen: 5 },
   fireWard: { name: 'Fire Ward', burst: 0.35 },
-  hand:     { name: 'Hand', takes: 0.1, koTakes: 0.2, guard: true },
+  // a bare hand, not a shield: fire goes straight through it
+  hand:     { name: 'Hand', takes: 0.1, koTakes: 0.2, guard: true, noFire: true },
 };

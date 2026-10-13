@@ -32,7 +32,7 @@ export const CLASSES = {
   giant: {
     name: 'Giant', maxHp: 200, weapon: 'boulder', shield: 'hand', size: 2,
     ultimate: { name: 'MEGA BOULDER', charge: 100, fromTaken: 0.5, perSecond: 2, shot: { arrow: 'megaBoulder' } },
-    potions: 3, maxPotions: 5, potionHeal: 70,
+    potions: 3, maxPotions: 5, potionHeal: 35,
     moveSpeed: 240, jumpHeight: 420,
     cooldown: { shot: 1.2, potion: 1.5 },
   },

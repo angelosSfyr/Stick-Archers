@@ -42,7 +42,7 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
   screens/pause.js) also takes ↑ ↓ / ✕ / ○.
 - Classes: archer (bow, held shield), pyromancer (fireballs that leave burning ground, a fire ward
   that's tapped, not held: `burst` shields; takes power-ups via `powerArrows`, ultimate summons a
-  `pyroMinion`) and giant (`size: 2`, boulders, a hand that's a `takes` shield, ultimate shot is a
+  `pyroMinion`) and giant (`size: 2`, boulders, a hand that's a `takes` shield and can't block fire (`noFire`), ultimate shot is a
   `ko` + `crush` mega boulder). Only arrows headshot (always an instant kill; there's no setting):
   everything else is `noInstantKill`. Players pick in the lobby; bots get a random `PLAYABLE` class.
 - Fighters always face the other side and never turn around. They walk only inside `f.zone`:

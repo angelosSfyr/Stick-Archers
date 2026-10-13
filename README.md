@@ -35,7 +35,7 @@ fall damage.
 The archer's shield soaks up damage from the front, slowly refills while lowered, and stays broken for
 the rest of the round once it breaks. The pyromancer's fire ward flares up for a moment on each tap,
 burns up whatever hits it from the front, never breaks, and needs a moment to recharge. The giant's
-hand never breaks either, but a tenth of the damage gets through. The mega boulder breaks any
+hand never breaks either, but a tenth of the damage gets through, and it can't stop fire at all. The mega boulder breaks any
 shield it hits (no damage gets through) except the giant's hand, which takes a fifth of the giant's health. The ultimate fills slowly on its own, faster with damage you deal (minions too) and damage you take, or all at once from the ULT balloon.
 A round is won when the other team's players are down; minions don't count.
 
