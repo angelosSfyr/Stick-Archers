@@ -156,19 +156,24 @@ export function hitZone(f, px, py) {
   return null;
 }
 
+const chargeUlt = (f, amount) => {
+  const ult = f.cls.ultimate;
+  if (!ult || f.ult >= ult.charge) return;
+  f.ult = Math.min(ult.charge, f.ult + amount);
+  if (f.ult >= ult.charge) {
+    M.popups.push({ x: f.x, y: f.y - 232, text: 'ULTIMATE READY  △', color: '#c99a12', t: 0 });
+    play('ultReady');
+  }
+};
+
 // `by` is whoever did the damage: it charges their ultimate (minions count too).
+// Taking damage charges a little too, so the fighter who's behind catches up.
 export function hurt(f, dmg, by = null) {
   const dealt = Math.min(f.hp, dmg);
   f.hp -= dealt;
   f.flinch = 0.3;
-  const ult = by && by !== f && by.cls.ultimate;
-  if (ult && by.ult < ult.charge) {
-    by.ult = Math.min(ult.charge, by.ult + dealt);
-    if (by.ult >= ult.charge) {
-      M.popups.push({ x: by.x, y: by.y - 232, text: 'ULTIMATE READY  △', color: '#c99a12', t: 0 });
-      play('ultReady');
-    }
-  }
+  if (by && by !== f) chargeUlt(by, dealt);
+  if (f.hp > 0 && f.cls.ultimate) chargeUlt(f, dealt * (f.cls.ultimate.fromTaken || 0));
   if (f.hp <= 0 && f.alive) {
     f.alive = false;
     f.deathT = 0;

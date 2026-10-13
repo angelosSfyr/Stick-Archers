@@ -3,7 +3,8 @@
 //   maxHp:      health at the start of a round
 //   weapon:     a key of WEAPONS in src/data/weapons.js
 //   shield:     a key of SHIELDS in src/data/weapons.js, held up with ○ (optional)
-//   ultimate:   charges with damage dealt; △ arms it and the next shot uses `shot`
+//   ultimate:   charges with damage dealt (and `fromTaken` × damage taken, so whoever is
+//               losing catches up); △ arms it and the next shot uses `shot`
 //               (same fields as a power-up's shot: arrow, spread)
 //   potions:    how many a fighter starts each round with (□ drinks one), up to maxPotions
 //   moveSpeed:  walking, px/s;  jumpHeight: px
@@ -14,14 +15,14 @@
 export const CLASSES = {
   archer: {
     name: 'Archer', maxHp: 100, weapon: 'bow', shield: 'buckler',
-    ultimate: { name: 'TRIPLE ARROW', charge: 150, shot: { spread: [-5, 0, 5] } },
+    ultimate: { name: 'TRIPLE ARROW', charge: 100, fromTaken: 0.5, shot: { spread: [-5, 0, 5] } },
     potions: 3, maxPotions: 5, potionHeal: 35,
     moveSpeed: 330, jumpHeight: 420,   // high enough to jump onto the 2 v 2 platform (PLATFORM_RISE)
     cooldown: { shot: 0.6, potion: 1.5 },
   },
   pyromancer: {
     name: 'Pyromancer', maxHp: 100, weapon: 'fireball', shield: 'fireWard', hat: 'wizard',
-    ultimate: { name: 'INFERNO', charge: 150, shot: { arrow: 'inferno' } },
+    ultimate: { name: 'INFERNO', charge: 100, fromTaken: 0.5, shot: { arrow: 'inferno' } },
     potions: 3, maxPotions: 5, potionHeal: 35,
     moveSpeed: 320, jumpHeight: 420,
     cooldown: { shot: 0.9, potion: 1.5, block: 1.5 },

@@ -30,7 +30,7 @@ them, and trees and wooden ledges can be jumped onto from below. Get knocked off
 fall damage.
 The archer's shield soaks up damage from the front, slowly refills while lowered, and stays broken for
 the rest of the round once it breaks. The pyromancer's fire ward flares up for a moment on each tap,
-burns up whatever hits it from the front, never breaks, and needs a moment to recharge. The ultimate fills with damage you deal (minions too), or all at once from the ULT balloon.
+burns up whatever hits it from the front, never breaks, and needs a moment to recharge. The ultimate fills with damage you deal (minions too) and, more slowly, damage you take, or all at once from the ULT balloon.
 A round is won when the other team's players are down; minions don't count.
 
 ## Running it
