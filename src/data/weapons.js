@@ -38,12 +38,12 @@ export const WEAPONS = {
 };
 
 // Projectile types. Everything is optional; leaving a field out means "like a normal arrow".
-//   damageMul:     multiplies body-part damage (not instant headshot kills)
+//   damageMul:     multiplies body-part damage (not headshot kills)
 //   alwaysKnocks:  knocks the target back even on a weak shot
 //   knock:         how hard it knocks the target back (0: never)
 //   blast:         explodes where it lands, hurting enemies within `radius`
 //   noStick:       doesn't stay stuck in bodies or the ground
-//   noInstantKill: a headshot does head damage even when headshots kill instantly
+//   noHeadshot:    can't headshot: a hit to the head counts as a torso hit
 //   burn:          sets the ground on fire where it lands (or under whoever it hits) for `time` seconds,
 //                  `radius` px each way; enemies who touch it burn for `dps` damage/s, and keep
 //                  burning `after` seconds once they're out of it
@@ -56,21 +56,21 @@ export const ARROWS = {
   normal: {},
   heavy:  { damageMul: 1.5, alwaysKnocks: true, knock: 1.3, look: { head: 17, half: 7, width: 4.5 } },
   bomb:   { blast: { radius: 150, damage: 45 }, look: { bomb: true } },
-  stone:  { knock: 0, noStick: true, noInstantKill: true, look: { stone: 5 } },
-  fireball: { knock: 0, noStick: true, noInstantKill: true, burn: { radius: 90, time: 3, dps: 12, after: 2 },
+  stone:  { knock: 0, noStick: true, look: { stone: 5 } },
+  fireball: { knock: 0, noStick: true, noHeadshot: true, burn: { radius: 90, time: 3, dps: 12, after: 2 },
               look: { fireball: 9 } },
   // the pyromancer's power-ups: still fireballs, so they can't headshot either
-  heavyFireball: { damageMul: 1.5, alwaysKnocks: true, knock: 1.3, noStick: true, noInstantKill: true,
+  heavyFireball: { damageMul: 1.5, alwaysKnocks: true, knock: 1.3, noStick: true, noHeadshot: true,
                    burn: { radius: 90, time: 3, dps: 12, after: 2 }, look: { fireball: 13 } },
-  fireBomb:      { blast: { radius: 150, damage: 45, fire: true }, knock: 0, noStick: true, noInstantKill: true,
+  fireBomb:      { blast: { radius: 150, damage: 45, fire: true }, knock: 0, noStick: true, noHeadshot: true,
                    burn: { radius: 150, time: 3, dps: 12, after: 2 }, look: { fireball: 12 } },
   // the giant's: no headshots either
-  boulder:      { knock: 1.4, noStick: true, noInstantKill: true, hitRadius: 18, look: { boulder: 20 } },
-  heavyBoulder: { damageMul: 1.5, alwaysKnocks: true, knock: 1.8, noStick: true, noInstantKill: true, hitRadius: 24,
+  boulder:      { knock: 1.4, noStick: true, noHeadshot: true, hitRadius: 18, look: { boulder: 20 } },
+  heavyBoulder: { damageMul: 1.5, alwaysKnocks: true, knock: 1.8, noStick: true, noHeadshot: true, hitRadius: 24,
                   look: { boulder: 27 } },
-  bombBoulder:  { blast: { radius: 150, damage: 45 }, knock: 0, noStick: true, noInstantKill: true, hitRadius: 18,
+  bombBoulder:  { blast: { radius: 150, damage: 45 }, knock: 0, noStick: true, noHeadshot: true, hitRadius: 18,
                   look: { boulder: 20, bomb: true } },
-  megaBoulder:  { ko: true, crush: true, alwaysKnocks: true, knock: 2, noStick: true, noInstantKill: true, hitRadius: 62,
+  megaBoulder:  { ko: true, crush: true, alwaysKnocks: true, knock: 2, noStick: true, noHeadshot: true, hitRadius: 62,
                   look: { boulder: 66 } },
 };
 

@@ -43,8 +43,8 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
 - Classes: archer (bow, held shield), pyromancer (fireballs that leave burning ground, a fire ward
   that's tapped, not held: `burst` shields; takes power-ups via `powerArrows`, ultimate summons a
   `pyroMinion`) and giant (`size: 2`, boulders, a hand that's a `takes` shield and can't block fire (`noFire`), ultimate shot is a
-  `ko` + `crush` mega boulder). Only arrows headshot (always an instant kill; there's no setting):
-  everything else is `noInstantKill`. Players pick in the lobby; bots get a random `PLAYABLE` class.
+  `ko` + `crush` mega boulder). Only arrows and minion stones headshot (always an instant kill; there's no setting):
+  everything else is `noHeadshot` (a head hit counts as torso). Players pick in the lobby; bots get a random `PLAYABLE` class.
 - Fighters always face the other side and never turn around. They walk only inside `f.zone`:
   up to `MID_STOP` from the middle and `EDGE_OUT` behind their start. Every arena needs a
   visible split in the middle: a deadly canyon (`middle: 'canyon'`) or a hill in its height().

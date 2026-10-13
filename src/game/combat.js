@@ -89,7 +89,8 @@ function hitFighter(f, zone, x, y, a) {
     return 'blocked';
   }
   if (zone === 'shield' && !shielded(f, kind.burn)) zone = 'torso';   // fire through the giant's raised hands
-  const instantKill = zone === 'head' && !kind.noInstantKill;
+  if (zone === 'head' && kind.noHeadshot) zone = 'torso';             // only arrows and stones headshot
+  const instantKill = zone === 'head';
   const part = zone === 'shield' ? 'torso' : zone;
   let dmg = a.owner.weapon.damage[part];
   if (kind.damageMul) dmg = Math.round(dmg * kind.damageMul);

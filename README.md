@@ -5,7 +5,7 @@ Each player picks a class in the lobby (△): the **Archer** with bow and shield
 **Pyromancer**, who throws fireballs that leave the ground burning (anyone who touches it catches
 fire) and has a fire shield that can't be held, only timed, or the **Giant**: twice the size and
 health, slow, throws boulders that hit twice as hard as fireballs, and blocks with a bare hand.
-Only arrows headshot (an arrow to the head always kills). The pyromancer's ultimate calls up a
+Only the archer's arrows and minions' stones headshot (a hit to the head always kills); a fireball or boulder to the head counts as a torso hit. The pyromancer's ultimate calls up a
 small fire minion; the giant's throws a mega boulder that knocks out whoever it hits unshielded and
 flattens minions on the way. Bots get a random class.
 Two teams stand on either side of a canyon or hill, each with stone-throwing minions
@@ -88,7 +88,7 @@ platforms in `M.platforms`. The middle has to split the two sides: either set `m
 or put a hill there in `height`. The arena shows up in the settings automatically.
 
 **An arrow type:** add an entry to `ARROWS` in `src/data/weapons.js`. You can set `damageMul`,
-`alwaysKnocks`, `knock`, `blast`, `burn` (leaves burning ground), `noStick`, `noInstantKill`, and how it looks (`look`). To give it new behavior, add a
+`alwaysKnocks`, `knock`, `blast`, `burn` (leaves burning ground), `noStick`, `noHeadshot`, and how it looks (`look`). To give it new behavior, add a
 field there and handle it in `hitFighter` / `arrowCollides` in `src/game/combat.js`.
 
 **A power-up:** add an entry to `POWERUPS` in `src/data/powerups.js`. Use `shot` to change the
