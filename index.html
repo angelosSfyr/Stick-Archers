@@ -12,22 +12,22 @@
   .hidden { display: none !important; }
 
   #settings { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
-              justify-content: center; gap: 16px; padding: 16px; box-sizing: border-box; overflow-y: auto; }
-  #settings h1 { margin: 0; font-size: 56px; }
-  .rows { display: grid; grid-template-columns: max-content auto; gap: 8px 22px; align-items: center; }
-  .row-label { font-size: 19px; font-weight: 600; padding: 6px 10px; border-left: 5px solid transparent; }
+              justify-content: center; gap: 12px; padding: 16px; box-sizing: border-box; overflow-y: auto; }
+  #settings h1 { margin: 0; font-size: 46px; }
+  .rows { display: grid; grid-template-columns: max-content auto; gap: 5px 22px; align-items: center; }
+  .row-label { font-size: 17px; font-weight: 600; padding: 4px 10px; border-left: 5px solid transparent; }
   .row-label.focus { border-left-color: #000; background: #f2f2f2; }
   .opts { display: flex; flex-wrap: wrap; gap: 6px; }
-  .opt { font: inherit; font-size: 16px; padding: 6px 13px; border: 2px solid #000; border-radius: 6px;
+  .opt { font: inherit; font-size: 15px; padding: 4px 12px; border: 2px solid #000; border-radius: 6px;
          background: #fff; color: #000; cursor: pointer; }
   .opt.on { background: #000; color: #fff; }
   .bar { display: flex; gap: 4px; }
-  .seg { font: inherit; font-size: 15px; font-weight: 700; width: 48px; height: 32px; border: 2px solid #000;
+  .seg { font: inherit; font-size: 14px; font-weight: 700; width: 44px; height: 28px; border: 2px solid #000;
          border-radius: 4px; background: #fff; color: #000; cursor: pointer; }
   .seg.fill { background: #000; color: #fff; }
-  .check { display: flex; align-items: center; gap: 10px; font-size: 16px; cursor: pointer; user-select: none; }
-  .box { width: 26px; height: 26px; border: 2px solid #000; border-radius: 4px; display: grid;
-         place-items: center; font-size: 20px; font-weight: 700; }
+  .check { display: flex; align-items: center; gap: 10px; font-size: 15px; cursor: pointer; user-select: none; }
+  .box { width: 24px; height: 24px; border: 2px solid #000; border-radius: 4px; display: grid;
+         place-items: center; font-size: 18px; font-weight: 700; }
   .damage { font-size: 15px; color: #444; text-align: center; max-width: 820px; }
   .hint { font-size: 14px; color: #777; }
   #continue { font: inherit; font-size: 20px; font-weight: 700; padding: 10px 30px; border: 3px solid #000;
@@ -75,6 +75,22 @@ const SPEED_SCALE = [0, 0.55, 0.75, 1, 1.3, 1.65]; // arrow speed level 1..5 (sa
 const WIND_MAX = 140;               // sideways push on arrows at full wind, px/s^2
 const OWN_VIEW_ZOOM = 1.25;         // zoom of the "only my team" camera
 const BOT_START_ERR = 0.22, BOT_MIN_ERR = 0.05, BOT_ERR_DECAY = 0.75;
+const HARD_HIT_POWER = 0.7;         // arrows shot with at least this power knock platform archers off
+const FALL_DAMAGE = 15;
+const HEAVY_FACTOR = 1.5;           // heavy arrow damage multiplier
+const BLAST_RADIUS = 150, BLAST_DAMAGE = 45;
+const HEAL_AMOUNT = 35;
+const SHAKY_SHOTS = 2;              // shots with a trembling bow after an arm hit
+const BLOOD = '#a8101b';
+
+// Power-up balloons: pop one with an arrow and the shooter gets it.
+const BALLOON_TYPES = {
+  triple: { color: '#3d82d6', label: '×3',     name: 'TRIPLE SHOT' },
+  bomb:   { color: '#e2742b', label: 'BOMB',   name: 'BOMB ARROW' },
+  heavy:  { color: '#8452bd', label: 'HEAVY',  name: 'HEAVY ARROW' },
+  heal:   { color: '#2c9e4b', label: '+' + HEAL_AMOUNT, name: `+${HEAL_AMOUNT} HEALTH` },
+  shield: { color: '#c99a12', label: 'SHIELD', name: 'SHIELD' },
+};
 
 const PLAYER_COLORS = ['#1f6feb', '#d93636', '#1a9e4b', '#e08a00'];
 const BOT_COLOR = '#777';
@@ -96,18 +112,22 @@ const SETTINGS_DEF = [
   { key: 'terrain',  label: 'Terrain', options: [['flat', 'Flat'], ['hills', 'Hills'], ['valley', 'Valley'], ['mountain', 'Mountain'], ['random', 'Random (new each round)']] },
   { key: 'distance', label: 'Distance between teams', options: [[1000, 'Close'], [1500, 'Medium'], [2100, 'Far'], [2800, 'Very far']] },
   { key: 'view',     label: 'Camera', options: [['both', 'See both teams'], ['own', 'Only my team, follow the arrow']] },
-  { key: 'turns',    label: 'Turns', options: [['single', 'One player at a time'], ['team', 'Whole team at once (2 vs 2)'], ['all', 'Everyone at the same time']] },
+  { key: 'mode',     label: 'Game mode', options: [['teams', 'Teams'], ['ffa-bots', 'Free-for-all (bots fill empty spots)'], ['ffa', 'Free-for-all (players only)']] },
+  { key: 'turns',    label: 'Turns', options: [['single', 'One player at a time'], ['team', 'Whole team at once (teams)'], ['all', 'Everyone at the same time']] },
   { key: 'rounds',   label: 'Rounds (best of)', options: [[1, '1'], [3, '3'], [5, '5'], [7, '7']] },
   { key: 'turnTime', label: 'Time per turn', options: [[5, '5s'], [10, '10s'], [15, '15s'], [20, '20s'], [30, '30s'], [0, 'No limit']] },
   { key: 'speed',    label: 'Arrow speed', kind: 'bar', options: [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']] },
   { key: 'headshot', label: 'Headshot kills instantly', kind: 'check', options: [[false, 'Off'], [true, 'On']] },
   { key: 'wind',     label: 'Wind', kind: 'check', options: [[false, 'Off'], [true, 'On']] },
+  { key: 'balloons', label: 'Power-up balloons', kind: 'check', options: [[false, 'Off'], [true, 'On']] },
+  { key: 'blood',    label: 'Blood', kind: 'check', options: [[false, 'Off'], [true, 'On']] },
   { key: 'music',    label: 'Music', kind: 'check', options: [[false, 'Off'], [true, 'On']] },
   { key: 'sfx',      label: 'Sound effects', kind: 'check', options: [[false, 'Off'], [true, 'On']] },
 ];
 const SETTINGS_KEY = 'stickArchers.settings';
-const settings = { terrain: 'hills', distance: 1500, view: 'both', turns: 'single', rounds: 3,
-                   turnTime: 15, speed: 3, headshot: true, wind: false, music: true, sfx: true };
+const settings = { terrain: 'hills', distance: 1500, view: 'both', mode: 'teams', turns: 'single', rounds: 3,
+                   turnTime: 15, speed: 3, headshot: true, wind: false, balloons: true, blood: true,
+                   music: true, sfx: true };
 try {
   const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
   for (const d of SETTINGS_DEF) {
@@ -124,17 +144,24 @@ function optionName(key) {
   return d.options.find(o => o[0] === settings[key])[1];
 }
 
+// Free-for-all has no teams, so "whole team at once" turns become one player at a time.
+const turnsFor = mode => settings.turns === 'team' && mode !== 'teams' ? 'single' : settings.turns;
+
 function settingsSummary() {
+  const turns = turnsFor(settings.mode);
   return [
+    settings.mode === 'teams' ? '' : 'free-for-all',
     optionName('terrain').replace(/ \(.*\)/, ''),
     optionName('distance').toLowerCase() + ' range',
-    settings.view === 'both' || settings.turns === 'all' ? 'both teams visible' : 'own team view',
-    { single: 'one player per turn', team: 'whole-team turns', all: 'everyone at once' }[settings.turns],
+    settings.view === 'both' || turns === 'all' ? 'both sides visible' : 'own side view',
+    { single: 'one player per turn', team: 'whole-team turns', all: 'everyone at once' }[turns],
     `best of ${settings.rounds}`,
-    settings.turns === 'all' ? '' : settings.turnTime ? `${settings.turnTime}s per turn` : 'no time limit',
+    turns === 'all' ? '' : settings.turnTime ? `${settings.turnTime}s per turn` : 'no time limit',
     `arrow speed ${settings.speed}`,
     settings.headshot ? 'headshot kills' : `headshot -${DMG.head}`,
     settings.wind ? 'wind' : 'no wind',
+    settings.balloons ? 'balloons' : '',
+    settings.blood ? '' : 'no blood',
     settings.music ? '' : 'music off',
     settings.sfx ? '' : 'sounds off',
   ].filter(Boolean).join('  ·  ');
@@ -189,7 +216,7 @@ function joinNames(names) {
 // Browsers keep audio off until the page gets a click or key press.
 // ---------------------------------------------------------------------------
 const audio = { ctx: null, master: null, music: null, sfx: null, noise: null, wind: null, whoosh: null,
-                step: 0, nextStepAt: 0, musicRunning: false };
+                step: 0, nextStepAt: 0, song: null };
 const soundHintEl = document.getElementById('soundHint');
 
 (function initAudio() {
@@ -312,15 +339,47 @@ const SFX = {
   timeUp() {
     tone({ freq: 150, type: 'square', dur: 0.35, vol: 0.08 });
   },
+  pop() {                 // balloon popped
+    noise({ dur: 0.07, vol: 0.45, type: 'highpass', freq: 1500 });
+    tone({ freq: 900, dur: 0.08, vol: 0.15, slideTo: 300 });
+  },
+  powerup() {
+    const t = audio.ctx.currentTime;
+    [659, 880, 1175].forEach((f, i) => tone({ freq: f, type: 'triangle', at: t + 0.05 + i * 0.07, dur: 0.18, vol: 0.2 }));
+  },
+  heal() {
+    const t = audio.ctx.currentTime;
+    tone({ freq: 523, at: t, dur: 0.3, vol: 0.2 });
+    tone({ freq: 784, at: t + 0.1, dur: 0.45, vol: 0.2 });
+  },
+  boom() {                // bomb arrow
+    noise({ dur: 0.8, vol: 0.7, type: 'lowpass', freq: 900, slideTo: 80 });
+    tone({ freq: 95, dur: 0.6, vol: 0.6, slideTo: 30 });
+  },
+  block() {               // shield stops an arrow
+    tone({ freq: 2200, dur: 0.18, vol: 0.12 });
+    tone({ freq: 3300, dur: 0.12, vol: 0.08 });
+    noise({ dur: 0.06, vol: 0.25, type: 'highpass', freq: 3000 });
+  },
+  fall() {                // knocked off a platform
+    tone({ freq: 700, type: 'triangle', dur: 0.45, vol: 0.12, slideTo: 160 });
+  },
+  land() {
+    noise({ dur: 0.18, vol: 0.4, type: 'lowpass', freq: 500 });
+    tone({ freq: 110, dur: 0.2, vol: 0.4, slideTo: 50 });
+  },
+  teleport() {            // free-for-all: moved to the other side
+    tone({ freq: 300, dur: 0.4, vol: 0.15, slideTo: 1400 });
+    noise({ dur: 0.4, vol: 0.12, type: 'bandpass', freq: 3000, slideTo: 8000 });
+  },
 };
 
 function play(name, ...args) {
   if (settings.sfx && audioReady()) SFX[name](...args);
 }
 
-// Music: an 8-bar loop (Am F C G) with bass, pads, melody and soft drums,
-// scheduled a little ahead of time so it stays in rhythm.
-const MUSIC_BPM = 112;
+// Music: two 8-bar loops, scheduled a little ahead of time so they stay in rhythm.
+// Match: Am F C G with bass, pads, melody and soft drums.
 const MUSIC_ROOTS = [45, 41, 48, 43];
 const MUSIC_CHORDS = [[57, 60, 64], [53, 57, 60], [55, 60, 64], [55, 59, 62]];
 const MUSIC_BASS = [0, null, 12, null, 0, null, 7, 12];
@@ -342,6 +401,30 @@ function musicStep(s, t, d) {
   noise({ at: t, dur: 0.03, vol: i % 2 ? 0.025 : 0.04, type: 'highpass', freq: 7000, dest });        // hat
 }
 
+// Menu: a calm C Am F G loop of soft arpeggios with a slow melody, no drums.
+const MENU_ROOTS = [36, 33, 29, 31];
+const MENU_CHORDS = [[60, 64, 67, 72], [57, 60, 64, 69], [53, 57, 60, 65], [55, 59, 62, 67]];
+const MENU_ARP = [0, 1, 2, 3, 2, 1, 2, 1];
+const MENU_MELODY = [
+  76, 0, 0, 0, 74, 0, 72, 0,   72, 0, 0, 0, 69, 0, 0, 0,
+  69, 0, 72, 0, 77, 0, 76, 0,  74, 0, 0, 0, 0, 0, 0, 0,
+  76, 0, 79, 0, 76, 0, 74, 0,  72, 0, 74, 0, 76, 0, 0, 0,
+  77, 0, 76, 0, 74, 0, 72, 0,  71, 0, 72, 0, 74, 0, 0, 0,
+];
+
+function menuStep(s, t, d) {
+  const dest = audio.music, i = s % 8, chord = Math.floor(s / 8) % 4;
+  if (i === 0) tone({ freq: midi(MENU_ROOTS[chord] + 12), at: t, dur: d * 8, vol: 0.16, attack: 0.05, dest });
+  tone({ freq: midi(MENU_CHORDS[chord][MENU_ARP[i]]), type: 'triangle', at: t, dur: d * 1.8, vol: 0.06, dest });
+  if (MENU_MELODY[s]) tone({ freq: midi(MENU_MELODY[s]), at: t, dur: d * 3, vol: 0.11, attack: 0.03, dest });
+  if (i % 2 === 0) noise({ at: t, dur: 0.05, vol: 0.012, type: 'highpass', freq: 6000, dest });     // soft shaker
+}
+
+const SONGS = {
+  match: { bpm: 112, length: MUSIC_MELODY.length, step: musicStep, vol: 0.55 },
+  menu:  { bpm: 84,  length: MENU_MELODY.length,  step: menuStep,  vol: 0.5 },
+};
+
 function updateAudio() {
   const ready = audioReady();
   const wantHint = !!audio.ctx && !ready && (settings.music || settings.sfx);
@@ -352,19 +435,21 @@ function updateAudio() {
   const inMatch = screen === 'match' && !!M;
   audio.sfx.gain.setTargetAtTime(settings.sfx ? 1 : 0, now, 0.05);
 
-  const musicOn = settings.music && inMatch;
-  audio.music.gain.setTargetAtTime(musicOn ? 0.55 : 0, now, 0.4);
-  if (musicOn) {
-    const d = 60 / MUSIC_BPM / 2;              // eighth notes
-    if (!audio.musicRunning || audio.nextStepAt < now) { audio.step = 0; audio.nextStepAt = now + 0.05; }
-    audio.musicRunning = true;
+  // menu music on the settings screen and lobby, match music while playing
+  const songName = settings.music ? (inMatch ? 'match' : 'menu') : null;
+  const song = SONGS[songName];
+  audio.music.gain.setTargetAtTime(song ? song.vol : 0, now, 0.4);
+  if (song) {
+    const d = 60 / song.bpm / 2;               // eighth notes
+    if (audio.song !== songName || audio.nextStepAt < now) { audio.step = 0; audio.nextStepAt = now + 0.05; }
+    audio.song = songName;
     while (audio.nextStepAt < now + 0.15) {
-      musicStep(audio.step, audio.nextStepAt, d);
-      audio.step = (audio.step + 1) % MUSIC_MELODY.length;
+      song.step(audio.step, audio.nextStepAt, d);
+      audio.step = (audio.step + 1) % song.length;
       audio.nextStepAt += d;
     }
   } else {
-    audio.musicRunning = false;
+    audio.song = null;
   }
 
   // wind: a constant gusting rush while the round has wind
@@ -562,10 +647,10 @@ function updateSettingsScreen() {
 // Spot -1 is the settings gear; 0..3 are the team spots (LT / RT walk through them).
 // ---------------------------------------------------------------------------
 const LOBBY_SLOTS = [
-  { x: 220,  y: 490, name: 'TEAM 1 · 2nd' },
-  { x: 300,  y: 820, name: 'TEAM 1 · 1st' },
-  { x: 1300, y: 820, name: 'TEAM 2 · 1st' },
-  { x: 1380, y: 490, name: 'TEAM 2 · 2nd' },
+  { x: 220,  y: 490, name: 'TEAM 1 · 2nd', ffaName: 'LEFT · HIGH' },
+  { x: 300,  y: 820, name: 'TEAM 1 · 1st', ffaName: 'LEFT · LOW' },
+  { x: 1300, y: 820, name: 'TEAM 2 · 1st', ffaName: 'RIGHT · LOW' },
+  { x: 1380, y: 490, name: 'TEAM 2 · 2nd', ffaName: 'RIGHT · HIGH' },
 ];
 const GEAR = { x: 90, y: 700 };
 const slotSide = slot => slot < 2 ? 'L' : 'R';
@@ -591,13 +676,19 @@ function lobbyStatus() {
 
   const left = humans.filter(h => slotSide(h.slot) === 'L').length;
   const right = n - left;
+  const empty = [0, 1, 2, 3].filter(s => !humans.some(h => h.slot === s));
   let bots = [], mode;
-  if (n === 1) { bots = [3 - humans[0].slot]; mode = '1 player vs BOT'; }
+  if (settings.mode !== 'teams') {
+    if (settings.mode === 'ffa-bots') bots = empty;
+    else if (n < 2) return { ...base, msg: 'Free-for-all needs 2+ players - or pick "bots fill empty spots" in Settings' };
+    const plural = (k, word) => `${k} ${word}${k === 1 ? '' : 's'}`;
+    mode = `Free-for-all · ${plural(n, 'player')}${bots.length ? ' + ' + plural(bots.length, 'bot') : ''}`;
+  } else if (n === 1) { bots = [3 - humans[0].slot]; mode = '1 player vs BOT'; }
   else if (n === 2) {
     if (left === 0 || right === 0) return { ...base, msg: '1 vs 1 - stand on opposite sides' };
     mode = '1 vs 1';
   } else if (n === 3) {
-    bots = [0, 1, 2, 3].filter(s => !humans.some(h => h.slot === s));
+    bots = empty;
     mode = '2 vs 1 + BOT';
   } else mode = '2 vs 2';
 
@@ -666,7 +757,8 @@ function updateLobby(dt) {
   else if ((countdownT -= dt) <= 0) {
     const roster = humans.map(h => ({ name: 'P' + h.num, pad: h.pad, slot: h.slot,
                                       color: PLAYER_COLORS[h.num - 1], isBot: false }));
-    for (const slot of st.bots) roster.push({ name: 'BOT', pad: null, slot, color: BOT_COLOR, isBot: true });
+    st.bots.forEach((slot, i) =>
+      roster.push({ name: i ? `BOT ${i + 1}` : 'BOT', pad: null, slot, color: BOT_COLOR, isBot: true }));
     startMatch(roster);
   }
 }
@@ -723,6 +815,8 @@ function solidAt(x, y) {
 // ---------------------------------------------------------------------------
 // Match / rounds / turns
 // ---------------------------------------------------------------------------
+// f.side is where an archer stands ('L' / 'R'); f.team is who they fight for:
+// the side in team games, their own name in free-for-all.
 const teamOf = side => M.fighters.filter(f => f.side === side);
 
 function teamName(side) {
@@ -734,12 +828,19 @@ function teamMembers(side) {
   return M.roster.filter(r => slotSide(r.slot) === side).map(r => r.name).join(' & ');
 }
 
+const winnerName = team => M.ffa ? team : teamName(team);
+const sideName = side => M.ffa ? (side === 'L' ? 'LEFT SIDE' : 'RIGHT SIDE') : teamName(side);
+const isEnemy = (a, b) => a !== b && (M.ffa || a.team !== b.team);
+
 function startMatch(roster) {
+  const ffa = settings.mode !== 'teams';
   M = {
-    roster, D: settings.distance,
+    roster, D: settings.distance, ffa, turns: turnsFor(settings.mode),
     vmax: Math.sqrt(GRAVITY * (settings.distance + 700)),
-    round: 0, score: { L: 0, R: 0 }, need: Math.floor(settings.rounds / 2) + 1,
+    round: 0, need: Math.floor(settings.rounds / 2) + 1,
+    score: ffa ? Object.fromEntries(roster.map(r => [r.name, 0])) : { L: 0, R: 0 },
     terrain: null, fighters: [], platforms: [], arrows: [], stuck: [], particles: [], popups: [],
+    balloons: [], balloonTimer: 0, stains: [], pools: [],
     wind: 0, cloudDrift: 0, clouds: makeClouds(), streaks: makeStreaks(),
     phase: '', phaseT: 0, side: null, firstSide: 'L', shooters: [], turnSeq: [], turnIdx: -1,
     turnLeft: 0, handoff: null, endT: null, volley: 0, lastLaunchT: -1,
@@ -756,13 +857,16 @@ function makeFighter(r) {
   const baseX = left ? 0 : M.D;
   return {
     name: r.name, pad: r.pad, color: r.color, isBot: r.isBot,
-    side: left ? 'L' : 'R', order: high ? 1 : 0, facing,
+    side: left ? 'L' : 'R', team: M.ffa ? r.name : (left ? 'L' : 'R'), order: high ? 1 : 0, facing,
     x: high ? baseX - facing * PLATFORM_BACK : baseX,
     y: groundY(baseX) - (high ? PLATFORM_RISE : 0),
     hp: 100, alive: true, deathT: 0,
     angle: BOW_DOWN, sweepDir: 1, power: 0, drawing: false, locked: false, reload: 0,
     lockL: true, lockR: true,      // triggers must be let go once at the start of a turn
     flinch: 0, twang: 0, stuck: [],
+    onPlatform: high, falling: false, vx: 0, vy: 0, slideV: 0,
+    shaky: 0, shield: false, nextShot: null,                // hit effects and power-ups
+    bleedT: 0, bleedAt: null, pooled: false,                 // blood
     bot: r.isBot ? { phase: 'think', timer: 0, target: null, baseAngle: 30,
                      wantAngle: 30, wantPower: 0, err: BOT_START_ERR } : null,
   };
@@ -772,12 +876,21 @@ function startRound() {
   M.round++;
   if (!M.terrain || settings.terrain === 'random') M.terrain = makeTerrain(settings.terrain, M.D);
   M.fighters = M.roster.map(makeFighter);
-  M.platforms = M.fighters.filter(f => f.order === 1).map(f => ({ x1: f.x - 60, x2: f.x + 60, y: f.y }));
   M.arrows = [];
   M.stuck = [];
   M.particles = [];
   M.popups = [];
+  M.balloons = [];
+  M.balloonTimer = rand(6, 10);
+  M.stains = [];
+  M.pools = [];
   M.wind = settings.wind ? (Math.random() < 0.5 ? -1 : 1) * rand(0.25, 1) : 0;
+  // free-for-all with only two archers on one side: one goes across before the round starts
+  if (M.ffa && M.fighters.length === 2 && M.fighters[0].side === M.fighters[1].side) {
+    moveAcross(M.fighters[0].onPlatform ? M.fighters[0] : M.fighters[1], false);
+  }
+  M.platforms = M.fighters.filter(f => f.onPlatform).map(f => ({ x1: f.x - 60, x2: f.x + 60, y: f.y }));
+  if (settings.balloons) for (let i = 0; i < balloonCount(); i++) spawnBalloon();
 
   // Teams take turns starting first; turn order is 1st of the starting team,
   // 1st of the other team, 2nd of the starting team, 2nd of the other team.
@@ -795,7 +908,7 @@ function startRound() {
   M.endT = null;
   M.lastImpact = null;
   M.impactHold = 0;
-  if (settings.turns === 'all') {
+  if (M.turns === 'all') {
     M.shooters = M.fighters.slice();
     M.side = M.firstSide;
     for (const f of M.fighters) if (f.bot) f.bot.timer = rand(1.0, 1.8);
@@ -808,7 +921,7 @@ function startRound() {
 }
 
 function nextTurn() {
-  if (settings.turns === 'team') {
+  if (M.turns === 'team') {
     M.side = M.side === null ? M.firstSide : opp(M.side);
     M.shooters = teamOf(M.side).filter(f => f.alive);
   } else {
@@ -858,6 +971,8 @@ function updateMatch(dt) {
   }
   for (const f of M.fighters) animateFighter(f, wdt);
   for (const s of M.stuck) s.wob = Math.max(0, s.wob - wdt / 0.6);
+  for (const p of M.pools) p.r = Math.min(p.max, p.r + wdt * p.max / 2.5);
+  if (M.phase !== 'matchOver') updateBalloons(wdt);
 
   switch (M.phase) {
     case 'roundIntro':
@@ -887,8 +1002,9 @@ function updateMatch(dt) {
 
 function updatePlay(dt) {
   if (roundEnding(dt)) return;
+  if (M.ffa && !M.arrows.length) checkMoveAcross();
 
-  if (settings.turns === 'all') {
+  if (M.turns === 'all') {
     for (const f of M.fighters) if (isPresent(f)) controlShooter(f, dt);
     return;
   }
@@ -918,24 +1034,54 @@ function updatePlay(dt) {
   M.handoff = locked.length ? HANDOFF_TIME : 0.6;
 }
 
-// Once a team is wiped out, let the arrows still flying land (a last arrow can
-// make it a draw), then end the round.
+// Once only one team (or one archer, in free-for-all) is left, let the arrows still
+// flying land (a last arrow can make it a draw), then end the round.
 function roundEnding(dt) {
-  const leftAlive = teamOf('L').some(f => f.alive);
-  const rightAlive = teamOf('R').some(f => f.alive);
-  if (leftAlive && rightAlive) return false;
+  const teamsAlive = new Set(M.fighters.filter(f => f.alive).map(f => f.team));
+  if (teamsAlive.size >= 2) return false;
   if (M.endT === null) {
     M.endT = 0;
     for (const f of M.fighters) { f.drawing = false; f.locked = false; f.power = 0; }
   }
   M.endT += dt;
-  if ((M.endT > 0.9 && !M.arrows.length) || M.endT > 4) {
-    M.roundWinner = leftAlive ? 'L' : rightAlive ? 'R' : null;
+  if ((M.endT > 0.9 && !M.arrows.length && !M.fighters.some(f => f.falling)) || M.endT > 4) {
+    M.roundWinner = teamsAlive.size ? [...teamsAlive][0] : null;
     if (M.roundWinner) M.score[M.roundWinner]++;
     setPhase('roundOver', 3.2);
     play('win');
   }
   return true;
+}
+
+// Free-for-all: when the last two archers stand on the same side they can't reach
+// each other, so one of them is moved across to the other side.
+function checkMoveAcross() {
+  const alive = M.fighters.filter(f => f.alive);
+  if (alive.length !== 2 || alive[0].side !== alive[1].side || alive.some(f => f.falling)) return;
+  const [a, b] = alive;
+  moveAcross(a.y !== b.y ? (a.y < b.y ? a : b) : alive[Math.floor(Math.random() * 2)], true);
+}
+
+function moveAcross(f, animate) {
+  if (animate) puff(f.x, f.y - 70);
+  f.side = opp(f.side);
+  f.facing = -f.facing;
+  const baseX = f.side === 'L' ? 0 : M.D;
+  f.x = baseX + f.facing * 60;         // just in front of anyone lying at that spot
+  f.y = groundY(f.x);
+  f.onPlatform = false;
+  f.falling = false;
+  f.drawing = false;
+  f.locked = false;
+  f.power = 0;
+  f.angle = BOW_DOWN;
+  for (const s of f.stuck) { s.x = -s.x; s.ang = Math.PI - s.ang; }   // mirror the arrows stuck in them
+  if (M.shooters.includes(f)) M.side = f.side;
+  if (animate) {
+    puff(f.x, f.y - 70);
+    M.banner = { text: `${f.name} MOVES ACROSS`, t: 1.6 };
+    play('teleport');
+  }
 }
 
 function controlShooter(f, dt) {
@@ -968,23 +1114,31 @@ function controlShooter(f, dt) {
 }
 
 function release(f) {
-  if (settings.turns === 'team') { f.locked = true; return; }
+  if (M.turns === 'team') { f.locked = true; return; }
   launch(f);
-  if (settings.turns === 'single') M.handoff = HANDOFF_TIME;
+  if (M.turns === 'single') M.handoff = HANDOFF_TIME;
 }
 
 function launch(f) {
   if (M.lastLaunchT !== T) { M.volley++; M.lastLaunchT = T; }   // arrows shot together share a volley
   const P = getPose(f);
   const speed = lerp(V_MIN, M.vmax, f.power);
-  M.arrows.push({ x: P.tip.x, y: P.tip.y, vx: P.d.x * speed, vy: P.d.y * speed,
-                  side: f.side, volley: M.volley, t: 0, trail: [] });
+  const kind = f.nextShot === 'bomb' || f.nextShot === 'heavy' ? f.nextShot : 'normal';
+  const spread = f.nextShot === 'triple' ? [-4, 0, 4] : [0];
+  for (const deg of spread) {
+    const a = Math.atan2(P.d.y, P.d.x) + deg * Math.PI / 180;
+    M.arrows.push({ x: P.tip.x, y: P.tip.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+                    owner: f, team: f.team, kind, power: f.power, spent: false,
+                    volley: M.volley, t: 0, trail: [] });
+  }
   play('shoot', f.power);
+  f.nextShot = null;
+  if (f.shaky > 0) f.shaky--;
   f.drawing = false;
   f.locked = false;
   f.power = 0;
   f.twang = 0.35;
-  if (settings.turns === 'all') {
+  if (M.turns === 'all') {
     f.reload = RELOAD_TIME;
     if (f.bot) { f.bot.phase = 'think'; f.bot.timer = rand(0.7, 1.5); }
   }
@@ -998,7 +1152,10 @@ function aimDir(facing, angleDeg) {
   return { x: facing * Math.cos(a), y: -Math.sin(a) };
 }
 
-function getPose(f, angle = f.angle, pull = f.drawing ? f.power : 0) {
+// After an arm hit the bow trembles, and the tremble is part of where the arrow goes.
+const aimShake = f => f.shaky > 0 && f.alive ? Math.sin(T * 11) * 4 + Math.sin(T * 23.7) * 2.5 : 0;
+
+function getPose(f, angle = f.angle + aimShake(f), pull = f.drawing ? f.power : 0) {
   const d = aimDir(f.facing, angle);
   const x = f.x, y = f.y;
   const shoulder = { x, y: y - 95 };
@@ -1029,23 +1186,92 @@ function hitZone(f, px, py) {
   return null;
 }
 
-function hitFighter(f, zone, x, y, ang) {
+// An arrow reached an archer. Returns 'blocked' when a shield turned it away.
+function hitFighter(f, zone, x, y, a) {
+  const ang = Math.atan2(a.vy, a.vx);
+  if (f.shield) {
+    f.shield = false;
+    play('block');
+    sparks(x, y, ang, 10);
+    M.popups.push({ x: f.x, y: f.y - 200, text: 'BLOCKED', t: 0 });
+    if (a.kind === 'bomb') { explode(x, y, a.owner, f); a.kind = 'normal'; }
+    return 'blocked';
+  }
+  f.stuck.push({ x: x + Math.cos(ang) * 10 - f.x, y: y + Math.sin(ang) * 10 - f.y, ang, wob: 1 });
   const instantKill = zone === 'head' && settings.headshot;
-  const dmg = instantKill ? f.hp : DMG[zone];
+  let dmg = instantKill ? f.hp : DMG[zone];
+  if (a.kind === 'heavy' && !instantKill) dmg = Math.round(dmg * HEAVY_FACTOR);
+  sparks(x, y, ang, zone === 'head' ? 12 : 7);
+  bleed(f, x, y, ang, zone === 'head' ? 1.6 : 1);
+  play(zone === 'head' ? 'headshot' : 'hit');
+  M.shake = Math.max(M.shake, zone === 'head' ? 0.35 : 0.2);
+  let label = zone === 'head' ? (instantKill ? 'HEADSHOT!' : `HEADSHOT  -${dmg}`) : `${zone.toUpperCase()}  -${dmg}`;
+  if (zone === 'arm' && f.hp > dmg) { f.shaky = SHAKY_SHOTS; label += '  ·  SHAKY AIM'; }
+  M.popups.push({ x: f.x, y: f.y - 200, text: label, big: zone === 'head', t: 0 });
+  hurt(f, dmg);
+  // hard hits (heavy arrows, or shots drawn with lots of power) push the archer back
+  if (a.kind === 'heavy' || a.power >= HARD_HIT_POWER) knock(f, Math.sign(a.vx), a.kind === 'heavy' ? 1.3 : 1);
+  if (a.kind === 'bomb') explode(x, y, a.owner, null);
+  return 'hit';
+}
+
+function hurt(f, dmg) {
   f.hp = Math.max(0, f.hp - dmg);
   f.flinch = 0.3;
-  sparks(x, y, ang, zone === 'head' ? 12 : 7);
-  play(zone === 'head' ? 'headshot' : 'hit');
-  M.shake = zone === 'head' ? 0.35 : 0.2;
-  const label = zone === 'head' ? (instantKill ? 'HEADSHOT!' : `HEADSHOT  -${dmg}`) : `${zone.toUpperCase()}  -${dmg}`;
-  M.popups.push({ x: f.x, y: f.y - 200, text: label, big: zone === 'head', t: 0 });
-  if (f.hp <= 0) {
+  if (f.hp <= 0 && f.alive) {
     f.alive = false;
     f.deathT = 0;
     f.drawing = false;
     f.locked = false;
     f.power = 0;
+    f.shield = false;
     M.slowmo = 0.8;
+  }
+}
+
+// Archers on a platform fall off it (and take fall damage when they land);
+// archers on the ground slide back a little.
+function knock(f, dir, strength) {
+  if (f.falling) return;
+  dir = dir || -f.facing;
+  if (f.onPlatform) {
+    f.onPlatform = false;
+    f.falling = true;
+    f.vx = dir * 230 * strength;
+    f.vy = -260;
+    M.popups.push({ x: f.x, y: f.y - 232, text: 'KNOCKED OFF!', t: 0 });
+    play('fall');
+  } else {
+    f.slideV = dir * 160 * strength;
+  }
+}
+
+function explode(x, y, owner, spare) {
+  play('boom');
+  M.shake = 0.6;
+  M.particles.push({ kind: 'blast', x, y, vx: 0, vy: 0, t: 0, life: 0.55 });
+  for (let i = 0; i < 18; i++) {
+    const a = rand(0, Math.PI * 2), sp = rand(200, 420);
+    M.particles.push({ kind: 'spark', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, life: rand(0.2, 0.4) });
+  }
+  for (let i = 0; i < 12; i++) {
+    M.particles.push({ kind: 'speck', x, y: y - 4, vx: rand(-220, 220), vy: -rand(200, 450), t: 0, life: rand(0.5, 0.9) });
+  }
+  for (const f of M.fighters) {
+    if (!f.alive || f === spare || !isEnemy(owner, f)) continue;
+    const d = Math.hypot(f.x - x, f.y - 70 - y);
+    if (d > BLAST_RADIUS) continue;
+    if (f.shield) {
+      f.shield = false;
+      play('block');
+      M.popups.push({ x: f.x, y: f.y - 170, text: 'BLOCKED', t: 0 });
+      continue;
+    }
+    const dmg = Math.round(lerp(BLAST_DAMAGE, 10, d / BLAST_RADIUS));
+    M.popups.push({ x: f.x, y: f.y - 170, text: `BLAST  -${dmg}`, t: 0 });
+    bleed(f, f.x, f.y - 70, Math.atan2(f.y - 70 - y, f.x - x), 0.8);
+    hurt(f, dmg);
+    knock(f, Math.sign(f.x - x), 1.2);
   }
 }
 
@@ -1056,8 +1282,116 @@ function animateFighter(f, dt) {
   f.reload = Math.max(0, f.reload - dt);
   for (const s of f.stuck) s.wob = Math.max(0, s.wob - dt / 0.6);
   // after the follow-through, a player whose turn is over lowers the bow
-  if (f.alive && settings.turns !== 'all' && !isActive(f) && !f.locked && f.twang <= 0 && f.angle > BOW_DOWN) {
+  if (f.alive && M.turns !== 'all' && !isActive(f) && !f.locked && f.twang <= 0 && f.angle > BOW_DOWN) {
     f.angle = Math.max(BOW_DOWN, f.angle - 160 * dt);
+  }
+
+  if (f.falling) {
+    f.x += f.vx * dt;
+    f.y += f.vy * dt;
+    f.vy += 1500 * dt;
+    const gy = groundY(f.x);
+    if (f.vy > 0 && f.y >= gy) {
+      f.y = gy;
+      f.falling = false;
+      dust(f.x, gy, f.vx);
+      play('land');
+      if (f.alive) {
+        M.popups.push({ x: f.x, y: f.y - 200, text: `FALL  -${FALL_DAMAGE}`, t: 0 });
+        hurt(f, FALL_DAMAGE);
+      }
+    }
+  } else if (f.slideV) {
+    f.x += f.slideV * dt;
+    f.slideV *= Math.exp(-10 * dt);
+    if (Math.abs(f.slideV) < 5) f.slideV = 0;
+    if (!f.onPlatform) f.y = groundY(f.x);
+  }
+
+  // blood: drips from the wound for a moment, and a pool once the body is down
+  if (f.bleedT > 0) {
+    f.bleedT -= dt;
+    if (Math.random() < dt * 9) drop(f.x + f.bleedAt.x, f.y + f.bleedAt.y, rand(-25, 25), rand(-20, 30), rand(1.5, 2.8));
+  }
+  if (!f.alive && !f.falling && !f.pooled && f.deathT >= 1 && settings.blood) {
+    f.pooled = true;
+    M.pools.push({ x: f.x - f.facing * 60, y: f.y, r: 0, max: f.onPlatform ? 38 : 70 });
+  }
+}
+
+function bleed(f, x, y, ang, amount) {
+  if (!settings.blood) return;
+  for (let i = 0; i < 14 * amount; i++) {             // spurts out the far side
+    const a = ang + rand(-0.7, 0.7), sp = rand(80, 340) * (0.6 + 0.4 * amount);
+    drop(x, y, Math.cos(a) * sp, Math.sin(a) * sp - rand(40, 160), rand(1.8, 4.2));
+  }
+  for (let i = 0; i < 4 * amount; i++) {              // and sprays back toward the shooter
+    const a = ang + Math.PI + rand(-0.6, 0.6), sp = rand(60, 160);
+    drop(x, y, Math.cos(a) * sp, Math.sin(a) * sp - 80, rand(1.5, 3));
+  }
+  f.bleedT = 1.6 * amount;
+  f.bleedAt = { x: x - f.x, y: y - f.y };
+}
+
+function drop(x, y, vx, vy, r) {
+  if (settings.blood) M.particles.push({ kind: 'blood', x, y, vx, vy, r, t: 0, life: 4 });
+}
+
+// ---------------------------------------------------------------------------
+// Power-up balloons
+// ---------------------------------------------------------------------------
+const balloonCount = () => M.D >= 2100 ? 3 : 2;
+
+function spawnBalloon() {
+  const types = Object.keys(BALLOON_TYPES);
+  for (let tries = 0; tries < 12; tries++) {
+    const x = rand(0.3, 0.7) * M.D;
+    if (M.balloons.some(b => Math.abs(b.x - x) < 160)) continue;
+    M.balloons.push({ type: types[Math.floor(Math.random() * types.length)], x, y: 0,
+                      baseY: Math.min(0, M.terrain.minY) - rand(260, 620),
+                      phase: rand(0, Math.PI * 2), vx: rand(-25, 25), age: 0 });
+    return;
+  }
+}
+
+function updateBalloons(dt) {
+  if (!settings.balloons) return;
+  if (M.balloons.length < balloonCount() && (M.balloonTimer -= dt) <= 0) {
+    spawnBalloon();
+    M.balloonTimer = rand(6, 10);
+  }
+  for (const b of M.balloons) {
+    b.age += dt;
+    b.x += (b.vx + M.wind * 35) * dt;
+    if (b.x < 0.25 * M.D) { b.x = 0.25 * M.D; b.vx = Math.abs(b.vx); }
+    if (b.x > 0.75 * M.D) { b.x = 0.75 * M.D; b.vx = -Math.abs(b.vx); }
+    b.y = b.baseY + Math.sin(T * 1.3 + b.phase) * 22;
+  }
+}
+
+// The arrow flies on through; whoever shot it gets the power-up.
+function popBalloon(b, a) {
+  M.balloons.splice(M.balloons.indexOf(b), 1);
+  M.balloonTimer = rand(6, 10);
+  play('pop');
+  const info = BALLOON_TYPES[b.type];
+  for (let i = 0; i < 12; i++) {
+    const ang = rand(0, Math.PI * 2), sp = rand(80, 260);
+    M.particles.push({ kind: 'shred', color: info.color, x: b.x, y: b.y, vx: Math.cos(ang) * sp,
+                       vy: Math.sin(ang) * sp - 60, t: 0, life: rand(0.5, 0.9), rot: rand(0, 6) });
+  }
+  const f = a.owner;
+  if (!f.alive) return;
+  M.popups.push({ x: b.x, y: b.y - 50, text: `${info.name} → ${f.name}`, color: info.color, t: 0 });
+  if (b.type === 'heal') {
+    f.hp = Math.min(100, f.hp + HEAL_AMOUNT);
+    play('heal');
+  } else if (b.type === 'shield') {
+    f.shield = true;
+    play('powerup');
+  } else {
+    f.nextShot = b.type;
+    play('powerup');
   }
 }
 
@@ -1100,28 +1434,47 @@ function solvePower(f, target, angle) {
 
 function planShot(f) {
   const b = f.bot;
-  const enemies = M.fighters.filter(e => e.alive && e.side !== f.side);
-  if (!b.target || !b.target.alive || Math.random() < 0.25) {
+  // an archer on the same side can't be reached, so aim across when possible
+  let enemies = M.fighters.filter(e => e.alive && isEnemy(f, e) && e.side !== f.side);
+  if (!enemies.length) enemies = M.fighters.filter(e => e.alive && isEnemy(f, e));
+  if (!enemies.length) { b.wantAngle = 30; b.wantPower = 0.3; return; }
+
+  // now and then, go for a power-up balloon instead
+  if (settings.balloons && !f.nextShot && Math.random() < 0.2) {
+    const ahead = M.balloons.filter(bl => (bl.x - f.x) * f.facing > 150);
+    const bl = ahead[Math.floor(Math.random() * ahead.length)];
+    if (bl && aimAt(f, { x: bl.x, y: bl.y + 80 }, rand(15, 45), 0.06)) return;
+  }
+
+  if (!b.target || !enemies.includes(b.target) || Math.random() < 0.25) {
     const t = enemies[Math.floor(Math.random() * enemies.length)];
     if (t !== b.target) {
       b.target = t;
       b.err = BOT_START_ERR;                       // new target: aim is rough again
-      b.baseAngle = f.order === 1 ? rand(10, 40) : rand(25, 50);
+      b.baseAngle = f.onPlatform ? rand(10, 40) : rand(25, 50);
     }
   }
-  const tries = [0, 5, -5, 10, -10, 15, 20, 25, 30, 35, 40]
-    .map(d => b.baseAngle + d).filter(a => a >= MIN_ANGLE + 5 && a <= 80);
-  for (const angle of tries) {
-    const p = solvePower(f, b.target, angle);
-    if (p !== null) {
-      b.wantAngle = angle;
-      b.wantPower = clamp(p * (1 + gauss() * b.err), 0.04, 1);
-      b.err = Math.max(BOT_MIN_ERR, b.err * BOT_ERR_DECAY);
-      return;
-    }
+  if (aimAt(f, b.target, b.baseAngle, b.err)) {
+    b.err = Math.max(BOT_MIN_ERR, b.err * BOT_ERR_DECAY);
+    return;
   }
   b.wantAngle = 55;
   b.wantPower = 1;
+}
+
+// Picks the first workable angle near baseAngle, and a power with some error.
+function aimAt(f, target, baseAngle, err) {
+  const tries = [0, 5, -5, 10, -10, 15, 20, 25, 30, 35, 40]
+    .map(d => baseAngle + d).filter(a => a >= MIN_ANGLE + 5 && a <= 80);
+  for (const angle of tries) {
+    const p = solvePower(f, target, angle);
+    if (p !== null) {
+      f.bot.wantAngle = angle;
+      f.bot.wantPower = clamp(p * (1 + gauss() * err), 0.04, 1);
+      return true;
+    }
+  }
+  return false;
 }
 
 function botInput(f, dt) {
@@ -1147,12 +1500,20 @@ function botInput(f, dt) {
 // ---------------------------------------------------------------------------
 function arrowCollides(a, px, py) {
   const ang = Math.atan2(a.vy, a.vx), c = Math.cos(ang), s = Math.sin(ang);
-  for (const f of M.fighters) {
-    if (!f.alive || f.side === a.side) continue;   // no friendly fire
-    const zone = hitZone(f, px, py);
-    if (zone) {
-      f.stuck.push({ x: px + c * 10 - f.x, y: py + s * 10 - f.y, ang, wob: 1 });
-      hitFighter(f, zone, px, py, ang);
+  if (!a.spent) {
+    for (const b of M.balloons) {
+      if (Math.hypot(px - b.x, py - b.y) < 30) { popBalloon(b, a); break; }
+    }
+    for (const f of M.fighters) {
+      if (!f.alive || !isEnemy(a.owner, f)) continue;   // no friendly fire in team games
+      const zone = hitZone(f, px, py);
+      if (!zone) continue;
+      if (hitFighter(f, zone, px, py, a) === 'blocked') {
+        a.spent = true;                                // bounces off the shield and drops
+        a.vx *= -0.3;
+        a.vy = -Math.abs(a.vy) * 0.3 - 120;
+        return { bounce: true, x: px, y: py };
+      }
       return { x: px, y: py };
     }
   }
@@ -1160,12 +1521,14 @@ function arrowCollides(a, px, py) {
   if (py >= gy) {
     M.stuck.push({ x: px + c * 12, y: py + s * 12, ang, wob: 1 });
     dust(px, gy, a.vx);
+    if (a.kind === 'bomb' && !a.spent) explode(px, gy, a.owner, null);
     return { x: px, y: gy };
   }
   for (const p of M.platforms) {
     if (px >= p.x1 && px <= p.x2 && py >= p.y && py <= p.y + 10) {
       M.stuck.push({ x: px + c * 6, y: py + s * 6, ang, wob: 1 });
       dust(px, p.y, a.vx);
+      if (a.kind === 'bomb' && !a.spent) explode(px, p.y, a.owner, null);
       return { x: px, y: py };
     }
   }
@@ -1187,6 +1550,7 @@ function updateArrows(dt) {
     for (let k = 1; k <= steps && !hit; k++) {
       hit = arrowCollides(a, lerp(a.x, nx, k / steps), lerp(a.y, ny, k / steps));
     }
+    if (hit && hit.bounce) { a.x = hit.x; a.y = hit.y; continue; }
     if (hit) { M.lastImpact = hit; M.impactHold = 0.7; M.arrows.splice(i, 1); continue; }
 
     a.x = nx;
@@ -1220,14 +1584,34 @@ function sparks(x, y, ang, n) {
   }
 }
 
+// smoke where an archer vanishes / appears when moved across
+function puff(x, y) {
+  for (let i = 0; i < 14; i++) {
+    const a = rand(0, Math.PI * 2), sp = rand(60, 200);
+    M.particles.push({ kind: 'smoke', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, life: rand(0.5, 0.9), r: rand(10, 22) });
+  }
+}
+
 function updateParticles(dt) {
   for (const p of M.particles) {
     p.t += dt;
-    if (p.kind === 'speck') p.vy += 900 * dt;
+    if (p.kind === 'speck' || p.kind === 'shred') p.vy += 900 * dt;
+    if (p.kind === 'blood') p.vy += 1100 * dt;
+    if (p.kind === 'smoke') { p.vx *= Math.exp(-4 * dt); p.vy = p.vy * Math.exp(-4 * dt) - 30 * dt; }
+    const prevY = p.y;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
+    if (p.kind === 'blood' && p.vy > 0) {                // a drop that lands leaves a stain
+      const plat = M.platforms.find(q => p.x >= q.x1 && p.x <= q.x2 && prevY <= q.y && p.y >= q.y);
+      const gy = groundY(p.x);
+      if (plat || p.y >= gy) {
+        M.stains.push({ x: p.x, y: plat ? plat.y : gy, r: p.r * rand(1.1, 1.8) });
+        p.t = p.life;
+      }
+    }
   }
   M.particles = M.particles.filter(p => p.t < p.life);
+  if (M.stains.length > 500) M.stains.splice(0, M.stains.length - 500);
 }
 
 const CLOUD_SPAN = 7000, CLOUD_PARALLAX = 0.5;
@@ -1260,7 +1644,7 @@ function fitBoxGrounded(b, maxZ, minZ) {
 
 function cameraTarget() {
   // "Everyone at the same time" always shows both teams: nobody's view can be the "own" one.
-  if (settings.view === 'both' || settings.turns === 'all' || M.phase === 'matchOver') {
+  if (settings.view === 'both' || M.turns === 'all' || M.phase === 'matchOver') {
     let b = null;
     for (const f of M.fighters) b = grow(b, f.x, f.y - 70, 160);
     b.y1 = Math.min(b.y1 - 60, M.terrain.minY - 120);
@@ -1291,11 +1675,14 @@ function updateCamera(dt, snap) {
   cam.z = Math.exp(lerp(Math.log(cam.z), Math.log(t.z), k));
 }
 
-function worldTransform() {
+const jitter = { x: 0, y: 0 };    // screen shake, picked once per frame
+function worldTransform(newShake = true) {
+  if (newShake) {
+    jitter.x = M.shake > 0 ? (Math.random() - 0.5) * 30 * M.shake : 0;
+    jitter.y = M.shake > 0 ? (Math.random() - 0.5) * 30 * M.shake : 0;
+  }
   const s = view.s * cam.z;
-  const jx = M.shake > 0 ? (Math.random() - 0.5) * 30 * M.shake : 0;
-  const jy = M.shake > 0 ? (Math.random() - 0.5) * 30 * M.shake : 0;
-  ctx.setTransform(s, 0, 0, s, view.ox + view.s * (W / 2 + jx) - cam.x * s, view.oy + view.s * (H / 2 + jy) - cam.y * s);
+  ctx.setTransform(s, 0, 0, s, view.ox + view.s * (W / 2 + jitter.x) - cam.x * s, view.oy + view.s * (H / 2 + jitter.y) - cam.y * s);
 }
 
 function screenTransform() {
@@ -1340,24 +1727,34 @@ function text(str, x, y, size, color = '#000', weight = 'bold', align = 'center'
   ctx.fillText(str, x, y);
 }
 
-function drawArrow(tx, ty, ang, color = '#000', flutter = 0) {
+function drawArrow(tx, ty, ang, color = '#000', flutter = 0, kind = 'normal') {
   const c = Math.cos(ang), s = Math.sin(ang);
   const bx = tx - c * ARROW_LEN, by = ty - s * ARROW_LEN;
+  const heavy = kind === 'heavy', head = heavy ? 17 : 12, half = heavy ? 7 : 5;
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
   ctx.lineCap = 'round';
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = heavy ? 4.5 : 2.5;
   line(bx, by, tx - c * 6, ty - s * 6);
   ctx.beginPath();
   ctx.moveTo(tx, ty);
-  ctx.lineTo(tx - c * 12 - s * 5, ty - s * 12 + c * 5);
-  ctx.lineTo(tx - c * 12 + s * 5, ty - s * 12 - c * 5);
+  ctx.lineTo(tx - c * head - s * half, ty - s * head + c * half);
+  ctx.lineTo(tx - c * head + s * half, ty - s * head - c * half);
   ctx.closePath();
   ctx.fill();
   const spread = 6 + flutter;
   ctx.lineWidth = 2;
   line(bx + c * 10, by + s * 10, bx - c * 2 - s * spread, by - s * 2 + c * spread);
   line(bx + c * 10, by + s * 10, bx - c * 2 + s * spread, by - s * 2 - c * spread);
+  if (kind === 'bomb') {                       // a little bomb with a fizzing fuse on the tip
+    ctx.beginPath();
+    ctx.arc(tx - c * 4, ty - s * 4, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = Math.sin(T * 40) > 0 ? '#ff8a00' : '#ffd000';
+    ctx.beginPath();
+    ctx.arc(tx - c * 4 - s * 10, ty - s * 4 + c * 10 - 6, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawStickman(f, color, showNock) {
@@ -1410,9 +1807,27 @@ function drawStickman(f, color, showNock) {
   ctx.lineTo(t2.x, t2.y);
   ctx.stroke();
 
-  if (showNock) drawArrow(P.tip.x, P.tip.y, Math.atan2(d.y, d.x), color);
+  if (showNock) {
+    const ang = Math.atan2(d.y, d.x), kind = f.nextShot === 'triple' ? 'normal' : (f.nextShot || 'normal');
+    const fan = f.nextShot === 'triple' ? [-0.07, 0, 0.07] : [0];
+    for (const da of fan) {
+      drawArrow(P.drawHand.x + Math.cos(ang + da) * ARROW_LEN, P.drawHand.y + Math.sin(ang + da) * ARROW_LEN,
+                ang + da, color, 0, kind);
+    }
+  }
   for (const s of f.stuck) drawArrow(f.x + s.x, f.y + s.y, s.ang + Math.sin(T * 45) * 0.2 * s.wob);
   ctx.restore();
+
+  if (f.shield && f.alive) {                   // shield bubble
+    const r = 95 + Math.sin(T * 4) * 3;
+    ctx.fillStyle = 'rgba(201, 154, 18, 0.08)';
+    ctx.strokeStyle = 'rgba(201, 154, 18, 0.7)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y - 75, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
 }
 
 // ----- lobby -----
@@ -1488,7 +1903,7 @@ function drawLobby() {
     const dummy = { x: slot.x, y: slot.y, facing: s < 2 ? 1 : -1, angle: 20,
                     drawing: false, power: 0, alive: true, stuck: [] };
     drawStickman(dummy, on.length ? '#000' : isBot ? '#999' : '#e4e4e4', false);
-    text(slot.name, slot.x, slot.y + (slotIsHigh(s) ? 32 : 34), 14, '#999', 'normal');
+    text(settings.mode === 'teams' ? slot.name : slot.ffaName, slot.x, slot.y + (slotIsHigh(s) ? 32 : 34), 14, '#999', 'normal');
 
     if (on.length) drawHumanLabels(on, slot.x, slot.y - 192, on.length > 1);
     else text(isBot ? 'BOT' : 'empty', slot.x, slot.y - 192, isBot ? 22 : 18, isBot ? BOT_COLOR : '#bbb', isBot ? 'bold' : 'normal');
@@ -1550,7 +1965,7 @@ function drawFlyingArrow(a) {
     ctx.lineWidth = 1 + 3 * k;
     line(a.trail[i - 1].x, a.trail[i - 1].y, a.trail[i].x, a.trail[i].y);
   }
-  drawArrow(a.x, a.y, Math.atan2(a.vy, a.vx), '#000', Math.sin(T * 50) * 1.5);
+  drawArrow(a.x, a.y, Math.atan2(a.vy, a.vx), '#000', Math.sin(T * 50) * 1.5, a.kind);
 }
 
 function drawParticles() {
@@ -1567,11 +1982,94 @@ function drawParticles() {
       ctx.beginPath();
       ctx.ellipse(p.x, p.y, 6 + 34 * (1 - k), 3 + 10 * (1 - k), 0, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (p.kind === 'blood') {
+      ctx.fillStyle = BLOOD;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, p.r, p.r * 1.25, Math.atan2(p.vy, p.vx), 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.kind === 'shred') {                 // bits of a popped balloon
+      ctx.strokeStyle = p.color;
+      ctx.globalAlpha = k;
+      ctx.lineWidth = 4;
+      const a = p.rot + p.t * 12;
+      line(p.x - Math.cos(a) * 6, p.y - Math.sin(a) * 6, p.x + Math.cos(a) * 6, p.y + Math.sin(a) * 6);
+      ctx.globalAlpha = 1;
+    } else if (p.kind === 'blast') {
+      const r = 15 + (BLAST_RADIUS - 15) * (1 - k * k);
+      ctx.fillStyle = `rgba(0,0,0,${0.12 * k})`;
+      ctx.strokeStyle = `rgba(0,0,0,${0.6 * k})`;
+      ctx.lineWidth = 6 * k + 1;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else if (p.kind === 'smoke') {
+      ctx.fillStyle = `rgba(120,120,120,${0.35 * k})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * (1.6 - k * 0.6), 0, Math.PI * 2);
+      ctx.fill();
     } else {
       ctx.strokeStyle = `rgba(0,0,0,${k})`;
       ctx.lineWidth = 3;
       line(p.x, p.y, p.x - p.vx * 0.05, p.y - p.vy * 0.05);
     }
+  }
+}
+
+// blood on the ground: splatters from drops, and a pool under each body
+function drawStains() {
+  ctx.fillStyle = BLOOD;
+  for (const s of M.stains) {
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y + 1, s.r * 1.7, s.r * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (const p of M.pools) {
+    if (p.r < 1) continue;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y + 1, p.r, p.r * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawBalloons() {
+  if (M.phase === 'roundOver' || M.phase === 'matchOver') return;   // keep the result banner clear
+  for (const b of M.balloons) {
+    const info = BALLOON_TYPES[b.type];
+    const s = Math.min(1, b.age / 0.4);           // grows in when it appears
+    const sway = Math.sin(T * 1.7 + b.phase) * 0.08;
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(sway);
+    ctx.scale(s, s);
+    ctx.strokeStyle = '#555';                       // string
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 34);
+    ctx.bezierCurveTo(10, 55, -10, 70, 4, 95);
+    ctx.stroke();
+    ctx.fillStyle = info.color;                     // balloon + knot
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 28, 34, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-5, 38);
+    ctx.lineTo(5, 38);
+    ctx.lineTo(0, 32);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';       // shine
+    ctx.beginPath();
+    ctx.ellipse(-10, -14, 6, 10, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    const p = toScreen(b.x, b.y);                   // label stays readable at any zoom
+    screenTransform();
+    text(info.label, p.x, p.y + 1, Math.max(11, 13 * cam.z), '#fff');
+    worldTransform(false);
   }
 }
 
@@ -1586,10 +2084,26 @@ function drawFighterOverlay(f) {
   ctx.strokeRect(head.x - 27, top - 6, 54, 6);
   text(f.name, head.x, top - 20, 20, f.color);
 
+  // what this archer is carrying: a power-up for the next shot, a shaky arm
+  const badges = [];
+  if (f.nextShot) badges.push([BALLOON_TYPES[f.nextShot].label, BALLOON_TYPES[f.nextShot].color]);
+  if (f.shaky > 0) badges.push(['SHAKY', '#888']);
+  let bx = head.x + 34;
+  ctx.font = 'bold 12px system-ui, "Segoe UI", sans-serif';
+  for (const [label, color] of badges) {
+    const w = ctx.measureText(label).width + 12;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(bx, top - 29, w, 18, 9);
+    ctx.fill();
+    text(label, bx + w / 2, top - 19.5, 12, '#fff', 'bold');
+    bx += w + 4;
+  }
+
   if (!isActive(f)) return;
   if (f.locked) {
     text('✓ locked in', head.x, top - 44, 15, '#1a9e4b');
-  } else if (settings.turns !== 'all') {
+  } else if (M.turns !== 'all') {
     const y = top - 46 + Math.sin(T * 6) * 4;   // bobbing "your turn" marker
     ctx.fillStyle = f.color;
     ctx.beginPath();
@@ -1622,7 +2136,7 @@ function drawWindIndicator(x, y) {
     ctx.lineTo(cx - dir * 7, y + 11);
     ctx.stroke();
   }
-  text(`favors ${teamName(dir > 0 ? 'L' : 'R')}`, x, y + 28, 15, '#555', 'normal');
+  text(`favors ${sideName(dir > 0 ? 'L' : 'R')}`, x, y + 28, 15, '#555', 'normal');
 }
 
 function drawStreaks() {
@@ -1639,12 +2153,29 @@ function drawStreaks() {
   }
 }
 
+// Teams: "TEAM 1  2 : 1  TEAM 2". Free-for-all: every archer's name and rounds won.
+function drawScore(y, size) {
+  if (!M.ffa) {
+    text(`${teamName('L')}   ${M.score.L} : ${M.score.R}   ${teamName('R')}`, W / 2, y, size);
+    return;
+  }
+  const parts = M.roster.map(r => [`${r.name} ${M.score[r.name]}`, r.color]);
+  ctx.font = `bold ${size}px system-ui, "Segoe UI", sans-serif`;
+  const gap = size * 1.4;
+  const total = parts.reduce((w, [t]) => w + ctx.measureText(t).width, 0) + gap * (parts.length - 1);
+  let x = W / 2 - total / 2;
+  for (const [t, color] of parts) {
+    text(t, x, y, size, color, 'bold', 'left');
+    x += ctx.measureText(t).width + gap;
+  }
+}
+
 function drawHUD() {
-  text(`${teamName('L')}   ${M.score.L} : ${M.score.R}   ${teamName('R')}`, W / 2, 36, 30);
-  text(`Round ${M.round}  ·  best of ${settings.rounds}`, W / 2, 68, 17, '#777', 'normal');
+  drawScore(36, M.ffa ? 26 : 30);
+  text(`Round ${M.round}  ·  best of ${settings.rounds}${M.ffa ? '  ·  free-for-all' : ''}`, W / 2, 68, 17, '#777', 'normal');
 
   const turnShown = (M.phase === 'play' || M.phase === 'roundIntro') && M.handoff === null && M.endT === null;
-  if (turnShown && settings.turns === 'all') {
+  if (turnShown && M.turns === 'all') {
     text('Everyone shoot!', W / 2, 104, 28);
   } else if (turnShown && M.shooters.length) {
     const single = M.shooters.length === 1;
@@ -1665,19 +2196,20 @@ function drawHUD() {
 
   if (M.phase === 'roundIntro') {
     text(`ROUND ${M.round}`, W / 2, 330, 90);
-    if (settings.wind && M.wind) text(`Wind favors ${teamName(M.wind > 0 ? 'L' : 'R')}`, W / 2, 400, 26, '#555', 'normal');
+    if (settings.wind && M.wind) text(`Wind favors ${sideName(M.wind > 0 ? 'L' : 'R')}`, W / 2, 400, 26, '#555', 'normal');
   } else if (M.phase === 'roundOver') {
     const w = M.roundWinner;
     if (!w) {
       text(`ROUND ${M.round} IS A DRAW`, W / 2, 300, 72);
     } else {
-      text(`${teamName(w)} WINS ROUND ${M.round}`, W / 2, 300, 72);
-      if (teamName(w).startsWith('TEAM')) text(teamMembers(w), W / 2, 360, 26, '#555', 'normal');
+      text(`${winnerName(w)} WINS ROUND ${M.round}`, W / 2, 300, 72);
+      if (!M.ffa && teamName(w).startsWith('TEAM')) text(teamMembers(w), W / 2, 360, 26, '#555', 'normal');
     }
   } else if (M.phase === 'matchOver') {
     const w = M.roundWinner;
-    text(`${teamName(w)} WINS THE MATCH!`, W / 2, 290, 76);
-    text(`${M.score.L} : ${M.score.R}`, W / 2, 365, 40, '#000', 'normal');
+    text(`${winnerName(w)} WINS THE MATCH!`, W / 2, 290, 76);
+    if (M.ffa) drawScore(365, 30);
+    else text(`${M.score.L} : ${M.score.R}`, W / 2, 365, 40, '#000', 'normal');
     text('Hold LT + RT to continue', W / 2, 425, 24, '#777', 'normal');
   } else if (M.banner) {
     ctx.globalAlpha = Math.min(1, M.banner.t * 2);
@@ -1695,6 +2227,8 @@ function drawMatch() {
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 10;
   for (const p of M.platforms) line(p.x1, p.y + 5, p.x2, p.y + 5);
+  drawStains();
+  drawBalloons();
   for (const f of M.fighters) {
     const active = isActive(f);
     drawStickman(f, '#000', f.alive && (f.drawing || (active && f.reload <= 0)));
@@ -1709,7 +2243,7 @@ function drawMatch() {
   for (const p of M.popups) {
     const s = toScreen(p.x, p.y);
     ctx.globalAlpha = Math.max(0, 1 - p.t / 1.4);
-    text(p.text, s.x, s.y - p.t * 40, p.big ? 30 : 22);
+    text(p.text, s.x, s.y - p.t * 40, p.big ? 30 : 22, p.color || '#000');
     ctx.globalAlpha = 1;
   }
   drawHUD();
