@@ -7,7 +7,7 @@ import { play } from '../audio/sfx.js';
 import { CLASSES, DEFAULT_CLASS, MINION_CLASS } from '../data/classes.js';
 import { SHIELDS, WEAPONS } from '../data/weapons.js';
 import { slotIsHigh, slotSide } from '../screens/lobby.js';
-import { distToSegment, lerp, rand } from '../util.js';
+import { clamp, distToSegment, lerp, rand } from '../util.js';
 import { drop, dust } from './effects.js';
 import { M } from './match.js';
 import { deathDepth, groundY, wallAhead } from './terrain.js';
@@ -28,6 +28,7 @@ function baseFighter(cls, side, x, y, extra) {
     lockL: true, lockR: true,      // triggers must be let go once at the start of a round
     cd: {},                        // cooldowns left, by action (see `cooldown` in src/data/classes.js)
     walk: 0, crouching: false, crouch: 0, blocking: false,
+    stride: 0, run: 0, air: 0, landT: 0,                     // leg animation (see legs())
     shield, shieldHp: shield ? shield.durability : 0, shieldBroken: false,
     potions: cls.potions || 0, ult: 0, ultArmed: false,
     flinch: 0, twang: 0, stuck: [],
@@ -75,18 +76,46 @@ function aimDir(facing, angleDeg) {
 // After an arm hit the bow trembles, and the tremble is part of where the arrow goes.
 const aimShake = f => f.shaky > 0 && f.alive ? Math.sin(T * 11) * 4 + Math.sin(T * 23.7) * 2.5 : 0;
 
+const THIGH = 32, STRIDE = 150, LAND_T = 0.2;    // thigh / shin length (longer than half the leg, so knees always show), px per run cycle, landing dip
+
+// Two-segment leg: the knee sits where thigh and shin meet, always bent toward the facing side.
+function kneeOf(hip, foot, len, facing) {
+  const dx = foot.x - hip.x, dy = foot.y - hip.y, d = Math.hypot(dx, dy) || 1;
+  const h = Math.sqrt(Math.max(0, len * len - d * d / 4));
+  const s = -dy * facing >= 0 ? 1 : -1;         // which side of the hip-foot line is "forward"
+  return { x: (hip.x + foot.x) / 2 - dy / d * h * s, y: (hip.y + foot.y) / 2 + dx / d * h * s };
+}
+
+// Feet: planted when standing, a run cycle when walking, tucked up in the air.
+// The stride phase is signed by walking direction, so the lifted foot always swings the way they walk.
+function legs(f, x, y, sz, c) {
+  const stand = [{ x: x - (20 + 6 * c) * sz, y }, { x: x + (20 + 6 * c) * sz, y }];
+  const run = f.run || 0, air = f.air || 0;
+  return stand.map((st, i) => {
+    const ph = (f.stride || 0) + i * Math.PI;
+    let fx = lerp(st.x, x + Math.sin(ph) * 24 * sz, run), fy = y - run * Math.max(0, Math.cos(ph)) * 28 * sz;
+    if (air) {                                   // knees up on the way up, legs reach down to land
+      const tuck = clamp(0.7 - (f.vy || 0) / 1400, 0.5, 1), front = (i === 1) === (f.facing > 0);
+      fx = lerp(fx, x + (front ? 14 : -26) * f.facing * sz, air);
+      fy = lerp(fy, y - (front ? 40 : 28) * tuck * sz, air);
+    }
+    return { x: fx, y: fy };
+  });
+}
+
 export function getPose(f, angle = f.angle + aimShake(f), pull = f.drawing ? f.power : 0) {
   if (f.blocking) { angle = BOW_DOWN; pull = 0; }
-  const sz = f.size || 1, c = f.crouch || 0;
+  const sz = f.size || 1, c = Math.max(f.crouch || 0, 0.6 * (f.landT || 0) / LAND_T);   // knees give a bit on landing
   const k = sz * (1 - 0.5 * c);                 // crouching halves the height
   const d = aimDir(f.facing, angle);
-  const x = f.x, y = f.y;
+  const x = f.x, y = f.y + (f.run || 0) * Math.abs(Math.sin(f.stride || 0)) * 3 * sz;   // bob while running
   const shoulder = { x, y: y - 95 * k };
+  const hip = { x, y: y - 52 * k + (f.run || 0) * 6 * sz };   // sit lower in the stride so the knees bend
+  const [footL, footR] = legs(f, x, f.y, sz, c);
   const body = {
-    d, shoulder,
-    head: { x, y: y - 125 * k }, neck: { x, y: y - 107 * k }, hip: { x, y: y - 52 * k },
-    footL: { x: x - (20 + 6 * c) * sz, y }, footR: { x: x + (20 + 6 * c) * sz, y },
-    knee: f.facing * 16 * c * sz,               // knees bend forward when crouching
+    d, shoulder, hip, footL, footR,
+    head: { x, y: y - 125 * k }, neck: { x, y: y - 107 * k },
+    kneeL: kneeOf(hip, footL, THIGH * sz, f.facing), kneeR: kneeOf(hip, footR, THIGH * sz, f.facing),
     shieldAt: { x: x + f.facing * 34 * sz, y: y - 72 * k }, shieldHalf: 52 * k,
   };
   if (f.weapon && f.weapon.throws) {
@@ -120,8 +149,9 @@ export function hitZone(f, px, py) {
   if (distToSegment(px, py, P.shoulder, P.bowHand) <= 4) return 'arm';
   if (distToSegment(px, py, P.shoulder, P.elbow) <= 4) return 'arm';
   if (distToSegment(px, py, P.elbow, P.drawHand) <= 4) return 'arm';
-  if (distToSegment(px, py, P.hip, P.footL) <= 6 * sz) return 'leg';
-  if (distToSegment(px, py, P.hip, P.footR) <= 6 * sz) return 'leg';
+  for (const [knee, foot] of [[P.kneeL, P.footL], [P.kneeR, P.footR]]) {
+    if (distToSegment(px, py, P.hip, knee) <= 6 * sz || distToSegment(px, py, knee, foot) <= 6 * sz) return 'leg';
+  }
   return null;
 }
 
@@ -209,6 +239,7 @@ function land(f, y, onPlatform) {
   f.y = y;
   f.falling = false;
   f.onPlatform = onPlatform;
+  f.landT = LAND_T;
   if (f.knocked) {
     dust(f.x, y, f.vx);
     play('land');
@@ -272,7 +303,14 @@ export function animateFighter(f, dt) {
   for (const s of f.stuck) s.wob = Math.max(0, s.wob - dt / 0.6);
   f.crouch = f.crouching ? Math.min(1, f.crouch + dt * 10) : Math.max(0, f.crouch - dt * 10);
   if (f.shield && !f.blocking && !f.shieldBroken) f.shieldHp = Math.min(f.shield.durability, f.shieldHp + f.shield.regen * dt);
+  const x0 = f.x;
   moveFighter(f, dt);
+  // legs: the stride follows the ground covered, so feet don't slide
+  const walking = !f.falling && !f.slideV && f.x !== x0;
+  if (walking) f.stride += (f.x - x0) / (STRIDE * f.size) * Math.PI * 2;
+  f.run = clamp(f.run + (walking ? dt : -dt) * 8, 0, 1);
+  f.air = clamp(f.air + (f.falling && f.alive ? dt : -dt) * 10, 0, 1);
+  f.landT = Math.max(0, f.landT - dt);
 
   // blood: drips from the wound for a moment, and a pool once the body is down
   if (f.bleedT > 0 && !f.gone) {

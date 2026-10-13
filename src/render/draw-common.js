@@ -63,12 +63,9 @@ export function drawStickman(f, color, showNock) {
   ctx.arc(P.head.x, P.head.y, 18 * sz, 0, Math.PI * 2);
   ctx.stroke();
   line(P.neck.x, P.neck.y, P.hip.x, P.hip.y);
-  for (const foot of [P.footL, P.footR]) {
-    ctx.beginPath();
-    ctx.moveTo(P.hip.x, P.hip.y);
-    if (P.knee) ctx.lineTo((P.hip.x + foot.x) / 2 + P.knee, (P.hip.y + foot.y) / 2);
-    ctx.lineTo(foot.x, foot.y);
-    ctx.stroke();
+  for (const [knee, foot] of [[P.kneeL, P.footL], [P.kneeR, P.footR]]) {
+    line(P.hip.x, P.hip.y, knee.x, knee.y);    // thigh and shin as two sticks
+    line(knee.x, knee.y, foot.x, foot.y);
   }
   line(P.shoulder.x, P.shoulder.y, P.bowHand.x, P.bowHand.y);
   ctx.beginPath();
