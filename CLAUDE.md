@@ -24,7 +24,8 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
 - Fighter health is `f.maxHp` (from the class), never a hard-coded 100. Weapon stats come from
   `f.weapon` (one per class). Cooldowns, potions, move
   speed and the ultimate are class fields too: per-class numbers go in `CLASSES`, not config.js.
-- Minions are ordinary fighters (`f.minion`, class `minion`) driven by the bot. They count for
+- Minions are ordinary fighters (`f.minion`, class `minion`, or one summoned by an ultimate like
+  `pyroMinion`) driven by the bot. They count for
   ultimate charge but not for winning a round (`roundEnding` in match.js).
 - Bots press the same inputs as players: `botInput` returns the same object as `padInput`
   (see `NO_INPUT` in game/controls.js), so new actions need handling in both.
@@ -40,7 +41,8 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
   tap RT, hold both; the lobby also takes △ to change class. The pause menu (`M.paused`,
   screens/pause.js) also takes ↑ ↓ / ✕ / ○.
 - Classes: archer (bow, held shield) and pyromancer (fireballs that leave burning ground, a fire ward
-  that's tapped, not held: `burst` shields). Players pick in the lobby; bots get a random `PLAYABLE` class.
+  that's tapped, not held: `burst` shields; takes power-ups via `powerArrows`, never headshots,
+  ultimate summons a `pyroMinion`). Players pick in the lobby; bots get a random `PLAYABLE` class.
 - Fighters always face the other side and never turn around. They walk only inside `f.zone`:
   up to `MID_STOP` from the middle and `EDGE_OUT` behind their start. Every arena needs a
   visible split in the middle: a deadly canyon (`middle: 'canyon'`) or a hill in its height().

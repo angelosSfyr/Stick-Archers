@@ -5,8 +5,8 @@
 //   shield:     a key of SHIELDS in src/data/weapons.js, held up with ○ (optional)
 //   ultimate:   charges with damage dealt (and `fromTaken` × damage taken, so whoever is
 //               losing catches up, plus `perSecond` while the round is on);
-//               △ arms it and the next shot uses `shot`
-//               (same fields as a power-up's shot: arrow, spread)
+//               △ arms it and the next shot uses `shot` (same fields as a power-up's shot:
+//               arrow, spread), or, with `summon` (a class key), △ calls up that minion right away
 //   potions:    how many a fighter starts each round with (□ drinks one), up to maxPotions
 //   moveSpeed:  walking, px/s;  jumpHeight: px
 //   cooldown:   seconds before the same action works again (shot, potion, block for burst shields)
@@ -23,7 +23,7 @@ export const CLASSES = {
   },
   pyromancer: {
     name: 'Pyromancer', maxHp: 100, weapon: 'fireball', shield: 'fireWard', hat: 'wizard',
-    ultimate: { name: 'INFERNO', charge: 100, fromTaken: 0.5, perSecond: 2, shot: { arrow: 'inferno' } },
+    ultimate: { name: 'FIRE MINION', charge: 100, fromTaken: 0.5, perSecond: 2, summon: 'pyroMinion' },
     potions: 3, maxPotions: 5, potionHeal: 35,
     moveSpeed: 320, jumpHeight: 420,
     cooldown: { shot: 0.9, potion: 1.5, block: 1.5 },
@@ -32,6 +32,12 @@ export const CLASSES = {
     name: 'Minion', maxHp: 60, weapon: 'stone', size: 0.6, minion: true,
     moveSpeed: 135, jumpHeight: 0,
     cooldown: { shot: 2.2 },
+  },
+  // the pyromancer's ultimate: a small pyromancer, same fireballs but easy to kill
+  pyroMinion: {
+    name: 'Fire minion', maxHp: 30, weapon: 'fireball', size: 0.7, hat: 'wizard', minion: true,
+    moveSpeed: 160, jumpHeight: 0,
+    cooldown: { shot: 1.5 },
   },
 };
 

@@ -7,7 +7,7 @@ import { padState, pressed } from '../core/input.js';
 import { play } from '../audio/sfx.js';
 import { botInput } from './bot.js';
 import { launch } from './combat.js';
-import { dropDown, jump } from './fighter.js';
+import { dropDown, jump, summonMinion } from './fighter.js';
 import { M } from './match.js';
 
 export const NO_INPUT = { lt: false, rt: false, move: 0, crouch: false, block: false,
@@ -82,13 +82,15 @@ function drinkPotion(f) {
   play('heal');
 }
 
-// △ with a full meter arms the ultimate; △ again puts it away.
+// △ with a full meter arms the ultimate; △ again puts it away. A summoning ultimate
+// isn't armed: it calls up its minion straight away.
 function toggleUltimate(f) {
   const u = f.cls.ultimate;
   if (!u) return;
   if (f.ultArmed) { f.ultArmed = false; return; }
   if (f.ult < u.charge) return;
-  f.ultArmed = true;
+  if (u.summon) { summonMinion(f, u.summon); f.ult = 0; }
+  else f.ultArmed = true;
   M.popups.push({ x: f.x, y: f.y - 232, text: u.name, color: '#c99a12', t: 0 });
   play('ult');
 }

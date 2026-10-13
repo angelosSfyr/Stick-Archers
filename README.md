@@ -3,7 +3,8 @@
 A real-time couch archery game for up to 4 players on controllers (PS5 layout) or the keyboard.
 Each player picks a class in the lobby (△): the **Archer** with bow and shield, or the
 **Pyromancer**, who throws fireballs that leave the ground burning (anyone who touches it catches
-fire) and has a fire shield that can't be held, only timed. Bots get a random class.
+fire) and has a fire shield that can't be held, only timed. Fireballs never headshot, and the
+pyromancer's ultimate calls up a small fire minion instead of a special shot. Bots get a random class.
 Two teams stand on either side of a canyon or hill, each with stone-throwing minions
 (5 by default, set in Settings). Playing alone, you face one bot, or team up with a bot against
 two (Settings → Single player).
@@ -86,7 +87,8 @@ or put a hill there in `height`. The arena shows up in the settings automaticall
 field there and handle it in `hitFighter` / `arrowCollides` in `src/game/combat.js`.
 
 **A power-up:** add an entry to `POWERUPS` in `src/data/powerups.js`. Use `shot` to change the
-next bow shot (`arrow`, `spread`) or `apply(f)` for an instant effect.
+next shot (`arrow`, `spread`) or `apply(f)` for an instant effect. A weapon that isn't a bow maps
+a new `arrow` to its own version in `powerArrows` (the fireball turns `bomb` into `fireBomb`).
 
 **A weapon:** add an entry to `WEAPONS` in `src/data/weapons.js` and point a class's `weapon`
 at it. Fighters read `f.weapon` for damage, draw time, speed and spread. Set
@@ -108,4 +110,5 @@ at the top of that file: health, weapon, shield, ultimate, potions, speed, jump,
 in `src/game/bot.js`. They're ordinary fighters with `f.minion` set: combat works on them as on
 anyone, damage dealt to them charges the ultimate, and `roundEnding` in `src/game/match.js` leaves
 them out when deciding who won. A different kind of helper or monster is another class with
-`minion: true`.
+`minion: true`; an ultimate with `summon` calls one up mid-round (`summonMinion`, like the
+pyromancer's `pyroMinion`).

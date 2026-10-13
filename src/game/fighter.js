@@ -69,6 +69,16 @@ export function makeMinion(side, i, n) {
   return f;
 }
 
+// A minion called up by `owner`'s ultimate, a little in front of them, on their team.
+export function summonMinion(owner, clsKey) {
+  const x = clamp(owner.x + owner.facing * 90, owner.zone.x1, owner.zone.x2);
+  const f = baseFighter(CLASSES[clsKey], owner.side, x, groundY(x),
+                        { name: 'MINION', pad: null, color: owner.color, isBot: true, order: 2, team: owner.team });
+  f.bot = makeBot(x, BOT_START_ERR * 1.6);
+  M.fighters.push(f);
+  return f;
+}
+
 function aimDir(facing, angleDeg) {
   const a = angleDeg * Math.PI / 180;
   return { x: facing * Math.cos(a), y: -Math.sin(a) };

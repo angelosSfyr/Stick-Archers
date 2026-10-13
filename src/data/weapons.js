@@ -21,6 +21,7 @@ const scaled = k => Object.fromEntries(Object.entries(DMG).map(([part, v]) => [p
 //   arrow:         the projectile type it shoots when no power-up says otherwise
 //   spread:        shoots several at once, at these angle offsets in degrees
 //   takesPowerups: balloon power-ups change its shots (the class's ultimate always does)
+//   powerArrows:   its own version of a power-up's projectile (by ARROWS key), e.g. a fire bomb instead of a bomb arrow
 //   throws:        thrown by hand instead of shot from a bow (pose and drawing)
 //   sound:         a key of SFX in src/audio/sfx.js
 export const WEAPONS = {
@@ -29,6 +30,7 @@ export const WEAPONS = {
   stone:  { name: 'Stone', damage: scaled(0.35), minSpeed: 200, maxSpeed: 0.7, drawTime: 0.8, arrow: 'stone',
             throws: true, sound: 'throw' },
   fireball: { name: 'Fireball', damage: scaled(0.6), minSpeed: 250, maxSpeed: 0.9, drawTime: 1.0, arrow: 'fireball',
+              takesPowerups: true, powerArrows: { heavy: 'heavyFireball', bomb: 'fireBomb' },
               throws: true, sound: 'fireball' },
 };
 
@@ -51,8 +53,11 @@ export const ARROWS = {
   stone:  { knock: 0, noStick: true, noInstantKill: true, look: { stone: 5 } },
   fireball: { knock: 0, noStick: true, noInstantKill: true, burn: { radius: 90, time: 3, dps: 12, after: 2 },
               look: { fireball: 9 } },
-  inferno:  { knock: 0, noStick: true, noInstantKill: true, damageMul: 1.5,
-              burn: { radius: 260, time: 7, dps: 15, after: 3 }, look: { fireball: 18 } },
+  // the pyromancer's power-ups: still fireballs, so they can't headshot either
+  heavyFireball: { damageMul: 1.5, alwaysKnocks: true, knock: 1.3, noStick: true, noInstantKill: true,
+                   burn: { radius: 90, time: 3, dps: 12, after: 2 }, look: { fireball: 13 } },
+  fireBomb:      { blast: { radius: 150, damage: 45 }, knock: 0, noStick: true, noInstantKill: true,
+                   burn: { radius: 150, time: 3, dps: 12, after: 2 }, look: { fireball: 12 } },
 };
 
 // Shields, raised with ○. They stop everything coming from the front.

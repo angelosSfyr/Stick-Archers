@@ -25,5 +25,6 @@ export function nextShot(f) {
   const w = f.weapon;
   const shot = (w.takesPowerups && f.nextShot && POWERUPS[f.nextShot].shot) || {};
   const ult = f.ultArmed ? f.cls.ultimate.shot : {};
-  return { arrow: ult.arrow || shot.arrow || w.arrow, spread: ult.spread || shot.spread || w.spread || [0] };
+  const power = shot.arrow && ((w.powerArrows && w.powerArrows[shot.arrow]) || shot.arrow);
+  return { arrow: ult.arrow || power || w.arrow, spread: ult.spread || shot.spread || w.spread || [0] };
 }
