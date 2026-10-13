@@ -78,7 +78,10 @@ function toggleUltimate(f) {
 }
 
 function aimAndShoot(f, lt, rt, dt) {
-  // LT: the weapon sweeps up and down while held (it starts below the range, pointing down)
+  // LT: the weapon sweeps up and down while held (it starts below the range, pointing down).
+  // Each new press sweeps the other way from where it stopped, so overshooting costs a tap, not a full bounce.
+  if (lt && !f.ltHeld && f.angle >= MIN_ANGLE) f.sweepDir *= -1;
+  f.ltHeld = lt;
   if (lt) {
     f.angle += f.sweepDir * SWEEP_SPEED * dt;
     if (f.sweepDir > 0 && f.angle >= MAX_ANGLE) { f.angle = MAX_ANGLE; f.sweepDir = -1; }

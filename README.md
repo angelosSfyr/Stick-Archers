@@ -13,7 +13,7 @@ two (Settings → Single player).
 | Jump | ✕ | J |
 | Drop down from a ledge | ↓ + ✕ | ↓ + J |
 | Crouch | stick or d-pad ↓ | ↓ |
-| Aim (sweeps up and down while held) | LT | A |
+| Aim (sweeps up and down while held; each new press reverses) | LT | A |
 | Draw (hold), shoot (release) | RT | D |
 | Drink a potion (3 per round, +35) | □ | L |
 | Block with the shield (hold) | ○ | K |

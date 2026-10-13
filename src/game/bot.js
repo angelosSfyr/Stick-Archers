@@ -177,7 +177,8 @@ export function botInput(f, dt) {
     return out;
   }
   if (b.phase === 'aim') {
-    if (Math.abs(f.angle - b.wantAngle) > 1.5) out.lt = true;
+    // sweeping the wrong way: let go of LT for a frame, the next press turns it around
+    if (Math.abs(f.angle - b.wantAngle) > 1.5) out.lt = !(f.ltHeld && f.sweepDir !== Math.sign(b.wantAngle - f.angle));
     else b.phase = 'draw';
     return out;
   }

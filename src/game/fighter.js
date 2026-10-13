@@ -24,7 +24,7 @@ function baseFighter(cls, side, x, y, extra) {
     // how far they can walk: up to the middle (never across), and a bit behind their side
     zone: left ? { x1: -EDGE_OUT, x2: M.D / 2 - MID_STOP } : { x1: M.D / 2 + MID_STOP, x2: M.D + EDGE_OUT },
     x, y, hp: cls.maxHp, maxHp: cls.maxHp, alive: true, deathT: 0, gone: false,
-    angle: BOW_DOWN, sweepDir: 1, power: 0, drawing: false,
+    angle: BOW_DOWN, sweepDir: 1, ltHeld: false, power: 0, drawing: false,
     lockL: true, lockR: true,      // triggers must be let go once at the start of a round
     cd: {},                        // cooldowns left, by action (see `cooldown` in src/data/classes.js)
     walk: 0, crouching: false, crouch: 0, blocking: false,
