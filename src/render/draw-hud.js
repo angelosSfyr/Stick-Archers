@@ -1,12 +1,13 @@
 // Screen-space overlays during a match: names and meters, score, banners.
-import { W } from '../config.js';
+import { H, W } from '../config.js';
 import { T } from '../core/clock.js';
 import { settings } from '../core/settings.js';
 import { POWERUPS } from '../data/powerups.js';
 import { getPose } from '../game/fighter.js';
 import { M, sideName, teamMembers, teamName, winnerName } from '../game/match.js';
+import { PAUSE_ITEMS } from '../screens/pause.js';
 import { toScreen } from './camera.js';
-import { ctx, text } from './canvas.js';
+import { ctx, text, view } from './canvas.js';
 
 function bar(x, y, w, h, frac, color) {
   ctx.fillStyle = color;
@@ -138,4 +139,23 @@ export function drawHUD() {
     text(M.banner.text, W / 2, 330, 72);
     ctx.globalAlpha = 1;
   }
+  if (M.paused) drawPauseMenu();
+}
+
+function drawPauseMenu() {
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.fillRect(view.left, 0, view.right - view.left, H);
+  text('PAUSED', W / 2, 270, 80);
+  PAUSE_ITEMS.forEach((item, i) => {
+    const y = 380 + i * 70, on = i === M.paused.sel;
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - 140, y - 26, 280, 52, 8);
+    ctx.fillStyle = on ? '#000' : '#fff';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#000';
+    ctx.stroke();
+    text(item, W / 2, y, 26, on ? '#fff' : '#000');
+  });
+  text('↑ ↓ pick  ·  ✕ choose  ·  START continue      (keyboard: ↑ ↓  ·  J  ·  Esc)', W / 2, 620, 17, '#777', 'normal');
 }

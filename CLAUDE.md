@@ -35,9 +35,9 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
 - Real time: everyone plays at once, no turns. Each action has a short per-class cooldown.
 - Controls (PS5 layout, standard gamepad mapping; input.js names buttons by what they do):
   left stick / d-pad = walk, ↓ crouch; LT aim, RT draw/shoot; ✕ jump (↓ + ✕ drops off a ledge), ○ block (held),
-  □ potion, △ arm ultimate. Keyboard: A / D = LT / RT, ← → ↓ = stick,
-  J ✕ · K ○ · L □ · I △. Menus (settings, lobby) still only use LT / RT gestures: tap LT,
-  tap RT, hold both.
+  □ potion, △ arm ultimate, START (button 9) pause. Keyboard: A / D = LT / RT, ← → ↑ ↓ = stick,
+  J ✕ · K ○ · L □ · I △ · Esc START. Menus (settings, lobby) still only use LT / RT gestures: tap LT,
+  tap RT, hold both. The pause menu (`M.paused`, screens/pause.js) also takes ↑ ↓ / ✕ / ○.
 - Fighters always face the other side and never turn around. They walk only inside `f.zone`:
   up to `MID_STOP` from the middle and `EDGE_OUT` behind their start. Every arena needs a
   visible split in the middle: a deadly canyon (`middle: 'canyon'`) or a hill in its height().

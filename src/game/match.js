@@ -7,6 +7,7 @@ import { play } from '../audio/sfx.js';
 import { ARENAS } from '../data/arenas.js';
 import { updateCamera } from '../render/camera.js';
 import { slotSide } from '../screens/lobby.js';
+import { pauseMatch, startPressed, updatePause } from '../screens/pause.js';
 import { showScreen } from '../screens/screens.js';
 import { rand } from '../util.js';
 import { balloonCount, spawnBalloon, updateBalloons } from './balloons.js';
@@ -44,7 +45,7 @@ export function startMatch(roster) {
     balloons: [], balloonTimer: 0, stains: [], pools: [],
     wind: 0, cloudDrift: 0, clouds: makeClouds(), streaks: makeStreaks(),
     phase: '', phaseT: 0, endT: null, roundWinner: null,
-    slowmo: 0, shake: 0, banner: null,
+    slowmo: 0, shake: 0, banner: null, paused: null,
   };
   showScreen('match');
   startRound();
@@ -89,6 +90,8 @@ export const inPlay = f => f.alive && M.phase === 'play' && M.endT === null;
 const isPresent = f => f.alive && (f.isBot || pads.has(f.pad));
 
 export function updateMatch(dt) {
+  if (M.paused) { updatePause(); return; }   // the whole world stands still
+  if (startPressed()) { pauseMatch(); return; }
   M.slowmo = Math.max(0, M.slowmo - dt);
   M.shake = Math.max(0, M.shake - dt);
   const wdt = M.slowmo > 0 ? dt * 0.3 : dt;   // world time: slow motion right after a kill

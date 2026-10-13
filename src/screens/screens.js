@@ -1,4 +1,5 @@
 // Screens: 'settings' -> 'lobby' -> 'match' -> back to 'lobby'
+// (pausing is not a screen: it's M.paused, see pause.js)
 import { consumeAll } from '../core/input.js';
 import { endMatch } from '../game/match.js';
 import { buildSettings } from './settings-screen.js';
@@ -23,5 +24,4 @@ document.getElementById('continue').onclick = () => showScreen('lobby');
 toSettingsBtn.onclick = () => showScreen('settings');
 addEventListener('keydown', e => {
   if (e.key === 'Enter' && screen === 'settings') { e.preventDefault(); showScreen('lobby'); }
-  if (e.key === 'Escape' && screen === 'match') showScreen('lobby');
 });

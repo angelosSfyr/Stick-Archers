@@ -18,8 +18,10 @@ two (Settings → Single player).
 | Drink a potion (3 per round, +35) | □ | L |
 | Block with the shield (hold) | ○ | K |
 | Arm the ultimate (when the meter is full) | △ | I |
+| Pause (continue, restart, quit) | OPTIONS (start) | Esc |
 
 Menus use only LT / RT: tap to move or change, hold both to confirm.
+The pause menu also takes ↑ ↓ to pick, ✕ to choose and ○ or START to continue.
 Every arena has more than one level: steps in the ground are too steep to walk up, so jump
 them, and trees and wooden ledges can be jumped onto from below. Get knocked off one and you take
 fall damage.
@@ -56,7 +58,7 @@ src/
     arenas.js           terrain shapes, trees and ledges, and what splits the middle (canyon or hill)
 
   core/                 settings (saved in localStorage), controller/keyboard input, clock
-  screens/              settings screen, lobby (join, pick spots, ready), screen switching
+  screens/              settings screen, lobby (join, pick spots, ready), pause menu, screen switching
   game/                 the match: rounds (match.js), fighters and movement, controls (what each
                         button does), combat, bot AI (players and minions), balloons, terrain,
                         particles, sky

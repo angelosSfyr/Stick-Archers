@@ -236,7 +236,7 @@ function drawBalloons() {
 
 export function drawMatch() {
   const vis = visibleWorld();
-  worldTransform();
+  worldTransform(!M.paused);   // no shaking while paused
   drawClouds();
   drawTrees();
   for (const s of M.stuck) drawArrow(s.x, s.y, s.ang + Math.sin(T * 45) * 0.2 * s.wob);
