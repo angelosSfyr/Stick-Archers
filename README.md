@@ -26,7 +26,7 @@ Every arena has more than one level: steps in the ground are too steep to walk u
 them, and trees and wooden ledges can be jumped onto from below. Get knocked off one and you take
 fall damage.
 The shield soaks up damage from the front, slowly refills while lowered, and stays broken for
-the rest of the round once it breaks. The ultimate fills with damage you deal (minions too).
+the rest of the round once it breaks. The ultimate fills with damage you deal (minions too), or all at once from the ULT balloon.
 A round is won when the other team's players are down; minions don't count.
 
 ## Running it

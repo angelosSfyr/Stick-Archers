@@ -14,6 +14,9 @@ export const POWERUPS = {
              apply: f => { f.potions = Math.min(f.cls.maxPotions || 0, f.potions + 1); } },
   barrier: { color: '#c99a12', label: 'BARRIER', name: 'BARRIER', sound: 'powerup',
              apply: f => { f.barrier = true; } },
+  // fills the meter, so △ arms the ultimate right away
+  ult:     { color: '#c2378f', label: '△ ULT', name: 'ULTIMATE', sound: 'ultReady',
+             apply: f => { if (f.cls.ultimate) f.ult = f.cls.ultimate.charge; } },
 };
 
 // What a fighter's next shot looks like: its weapon, plus a power-up and the ultimate
