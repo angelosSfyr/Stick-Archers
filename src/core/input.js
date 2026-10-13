@@ -1,13 +1,20 @@
-// Controllers (only LT = buttons[6] and RT = buttons[7] are used)
-// Each pad also produces gestures: 'tapL' / 'tapR' (quick press of one trigger,
+// Controllers and the keyboard.
+// Menus only use LT / RT and their gestures: 'tapL' / 'tapR' (quick press of one trigger,
 // fired on release) and 'hold' (both triggers held for HOLD_TIME).
-import { HOLD_TIME, TRIGGER_PRESS, TRIGGER_RELEASE } from '../config.js';
+// In a match a pad also has: moveX (-1..1, left stick or d-pad), up / down (stick or d-pad),
+// and the face buttons, named by what they do (PS5 layout): potion ✕, block ○, swap □, ult △.
+// Use `pressed(p, name)` for "just pressed this frame".
+import { HOLD_TIME, STICK_DEAD, TRIGGER_PRESS, TRIGGER_RELEASE } from '../config.js';
 import { unlockAudio } from '../audio/synth.js';
 
-export const pads = new Map(); // gamepad index -> { lt, rt, ltPrev, rtPrev, g, ev }
-const NO_PAD = { lt: false, rt: false, ltPrev: false, rtPrev: false, g: { holdT: 0 }, ev: [] };
+// standard gamepad mapping: 0 ✕, 1 ○, 2 □, 3 △, 6 LT, 7 RT, 12-15 d-pad up / down / left / right
+const FACE = { potion: 0, block: 1, swap: 2, ult: 3 };
+const BUTTONS = ['up', 'down', ...Object.keys(FACE)];
 
-function triggerValue(gp, i) {
+export const pads = new Map(); // gamepad index (or 'kb') -> pad state
+const NO_PAD = { lt: false, rt: false, ltPrev: false, rtPrev: false, moveX: 0, btn: {}, prev: {}, g: { holdT: 0 }, ev: [] };
+
+function buttonValue(gp, i) {
   const b = gp.buttons[i];
   if (!b) return 0;
   return Math.max(b.value || 0, b.pressed ? 1 : 0);
@@ -32,42 +39,66 @@ function gestures(p, dt) {
   return ev;
 }
 
+export const pressed = (p, name) => !!p.btn[name] && !p.prev[name];
+
 // Ignore whatever this pad is pressing right now (used when the screen changes).
 export function consumePad(p) {
   p.g.comboL = p.g.comboR = true;
   p.g.fired = p.lt && p.rt;
   p.g.holdT = 0;
   p.ev = [];
+  p.prev = { ...p.btn };
 }
 export const consumeAll = () => { for (const p of pads.values()) consumePad(p); };
 
-// The keyboard is one more controller (pad 'kb'): A or Left = LT, D or Right = RT.
-// It shows up once one of those keys is pressed.
-const KEYS_LT = ['KeyA', 'ArrowLeft'], KEYS_RT = ['KeyD', 'ArrowRight'];
+// The keyboard is one more controller (pad 'kb'). It shows up once one of its keys is pressed.
+const KEYS = {
+  lt: ['KeyA'], rt: ['KeyD'],
+  left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'],
+  potion: ['KeyJ'], block: ['KeyK'], swap: ['KeyL'], ult: ['KeyI'],
+};
+const ALL_KEYS = Object.values(KEYS).flat();
 const keysDown = new Set();
 let keyboardUsed = false;
 addEventListener('keydown', e => {
-  if (!KEYS_LT.includes(e.code) && !KEYS_RT.includes(e.code)) return;
+  if (!ALL_KEYS.includes(e.code)) return;
   keysDown.add(e.code);
   keyboardUsed = true;
   e.preventDefault();
 });
 addEventListener('keyup', e => keysDown.delete(e.code));
 addEventListener('blur', () => keysDown.clear());
+const key = name => KEYS[name].some(k => keysDown.has(k)) ? 1 : 0;
 
-function readPad(key, lt, rt, dt) {
-  let p = pads.get(key);
+// raw: { lt, rt (0..1), moveX (-1..1), and 0/1 for each of BUTTONS }
+function readPad(id, raw, dt) {
+  let p = pads.get(id);
   if (!p) {
-    p = { lt: false, rt: false, ltPrev: false, rtPrev: false, ev: [],
+    p = { lt: false, rt: false, ltPrev: false, rtPrev: false, moveX: 0, btn: {}, prev: {}, ev: [],
           g: { comboL: false, comboR: false, holdT: 0, fired: false } };
-    pads.set(key, p);
+    pads.set(id, p);
   }
   p.ltPrev = p.lt;
   p.rtPrev = p.rt;
-  p.lt = p.lt ? lt > TRIGGER_RELEASE : lt > TRIGGER_PRESS;
-  p.rt = p.rt ? rt > TRIGGER_RELEASE : rt > TRIGGER_PRESS;
+  p.lt = p.lt ? raw.lt > TRIGGER_RELEASE : raw.lt > TRIGGER_PRESS;
+  p.rt = p.rt ? raw.rt > TRIGGER_RELEASE : raw.rt > TRIGGER_PRESS;
+  p.moveX = Math.abs(raw.moveX) > STICK_DEAD ? Math.sign(raw.moveX) * Math.min(1, (Math.abs(raw.moveX) - STICK_DEAD) / (0.9 - STICK_DEAD)) : 0;
+  p.prev = p.btn;
+  p.btn = Object.fromEntries(BUTTONS.map(b => [b, raw[b] > 0.5]));
   p.ev = gestures(p, dt);
-  if ((p.lt && !p.ltPrev) || (p.rt && !p.rtPrev)) unlockAudio();   // works where the browser allows it
+  if ((p.lt && !p.ltPrev) || (p.rt && !p.rtPrev) || BUTTONS.some(b => pressed(p, b))) unlockAudio();   // works where the browser allows it
+}
+
+function readGamepad(gp) {
+  const sx = gp.axes[0] || 0, sy = gp.axes[1] || 0;
+  const raw = {
+    lt: buttonValue(gp, 6), rt: buttonValue(gp, 7),
+    moveX: buttonValue(gp, 15) - buttonValue(gp, 14) || sx,
+    up: Math.max(buttonValue(gp, 12), sy < -2 * STICK_DEAD ? 1 : 0),
+    down: Math.max(buttonValue(gp, 13), sy > 2 * STICK_DEAD ? 1 : 0),
+  };
+  for (const [name, i] of Object.entries(FACE)) raw[name] = buttonValue(gp, i);
+  return raw;
 }
 
 export function pollPads(dt) {
@@ -76,11 +107,13 @@ export function pollPads(dt) {
   for (const gp of list) {
     if (!gp || !gp.connected) continue;
     seen.add(gp.index);
-    readPad(gp.index, triggerValue(gp, 6), triggerValue(gp, 7), dt);
+    readPad(gp.index, readGamepad(gp), dt);
   }
   if (keyboardUsed) {
     seen.add('kb');
-    readPad('kb', KEYS_LT.some(k => keysDown.has(k)) ? 1 : 0, KEYS_RT.some(k => keysDown.has(k)) ? 1 : 0, dt);
+    const raw = { lt: key('lt'), rt: key('rt'), moveX: key('right') - key('left') };
+    for (const b of BUTTONS) raw[b] = key(b);
+    readPad('kb', raw, dt);
   }
   for (const idx of [...pads.keys()]) if (!seen.has(idx)) pads.delete(idx);
 }

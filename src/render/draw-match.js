@@ -1,9 +1,9 @@
 // The match: the world (sky, ground, fighters, arrows, effects), then the HUD on top.
-import { BLOOD } from '../config.js';
+import { BLOOD, EDGE_OUT } from '../config.js';
 import { T } from '../core/clock.js';
 import { settings } from '../core/settings.js';
 import { POWERUPS } from '../data/powerups.js';
-import { M, isActive } from '../game/match.js';
+import { M, inPlay } from '../game/match.js';
 import { getPose } from '../game/fighter.js';
 import { groundY } from '../game/terrain.js';
 import { CLOUD_PARALLAX, CLOUD_PUFFS, CLOUD_SPAN } from '../game/sky.js';
@@ -34,7 +34,15 @@ function drawClouds() {
 }
 
 function drawTerrain(vis) {
-  const step = 10;
+  const step = 10, c = M.terrain.canyon;
+  if (c) {                                         // the canyon gets darker the deeper it goes
+    const top = Math.min(groundY(c.x1 - 20), groundY(c.x2 + 20));
+    const g = ctx.createLinearGradient(0, top, 0, top + 700);
+    g.addColorStop(0, 'rgba(0,0,0,0.05)');
+    g.addColorStop(1, 'rgba(0,0,0,0.85)');
+    ctx.fillStyle = g;
+    ctx.fillRect(c.x1 - 12, top, c.x2 - c.x1 + 24, 3000);
+  }
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 12;
   ctx.lineCap = 'round';
@@ -44,6 +52,19 @@ function drawTerrain(vis) {
   ctx.moveTo(x0, groundY(x0) + 6);
   for (let x = x0 + step; x <= vis.x2 + step; x += step) ctx.lineTo(x, groundY(x) + 6);
   ctx.stroke();
+}
+
+// posts marking how far back each side can walk
+function drawBorders() {
+  ctx.strokeStyle = '#000';
+  ctx.lineCap = 'round';
+  for (const x of [-EDGE_OUT, M.D + EDGE_OUT]) {
+    const gy = groundY(x);
+    ctx.lineWidth = 8;
+    line(x, gy, x, gy - 90);
+    ctx.lineWidth = 5;
+    line(x - 14, gy - 70, x + 14, gy - 70);
+  }
 }
 
 function drawAimGuides(f) {
@@ -102,11 +123,6 @@ function drawParticles() {
       ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-    } else if (p.kind === 'smoke') {
-      ctx.fillStyle = `rgba(120,120,120,${0.35 * k})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * (1.6 - k * 0.6), 0, Math.PI * 2);
-      ctx.fill();
     } else {
       ctx.strokeStyle = `rgba(0,0,0,${k})`;
       ctx.lineWidth = 3;
@@ -178,15 +194,17 @@ export function drawMatch() {
   drawClouds();
   for (const s of M.stuck) drawArrow(s.x, s.y, s.ang + Math.sin(T * 45) * 0.2 * s.wob);
   drawTerrain(vis);
+  drawBorders();
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 10;
   for (const p of M.platforms) line(p.x1, p.y + 5, p.x2, p.y + 5);
   drawStains();
   drawBalloons();
   for (const f of M.fighters) {
-    const active = isActive(f);
-    drawStickman(f, '#000', f.alive && (f.drawing || (active && f.reload <= 0)));
-    if (active && !f.isBot && !f.locked && M.phase === 'play') drawAimGuides(f);
+    if (f.gone) continue;
+    const ready = inPlay(f) && !f.blocking && !f.cd.shot;
+    drawStickman(f, f.minion ? '#333' : '#000', f.alive && (f.drawing || ready));
+    if (ready && !f.isBot) drawAimGuides(f);
   }
   for (const a of M.arrows) drawFlyingArrow(a);
   drawParticles();

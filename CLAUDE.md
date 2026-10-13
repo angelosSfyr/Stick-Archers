@@ -7,11 +7,13 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
 - Must be served, modules don't load from `file://`: `python3 -m http.server 8000`.
 - No test suite. To verify a change, run it in a browser (Playwright's headless Chromium is in
   `~/.cache/ms-playwright`): join with the keyboard (D, then hold A+D), let a match play, and
-  watch for page errors. `await import('/src/game/match.js')` in the page gives the live `M`,
-  handy for forcing state (power-ups, shields, hp).
+  watch for page errors. Hold keys for ~100 ms: a press shorter than a frame is never seen.
+  `await import('/src/game/match.js')` in the page gives the live `M`, handy for forcing state
+  (power-ups, hp, ult charge). A controller can be faked by overriding `navigator.getGamepads`
+  in an init script (standard mapping: buttons 0-3 = ✕ ○ □ △, 6/7 = LT/RT, 12-15 = d-pad).
 
 ## Architecture rules
-- Content lives in `src/data/` as registries (`CLASSES`, `WEAPONS`, `ARROWS`, `POWERUPS`, `ARENAS`).
+- Content lives in `src/data/` as registries (`CLASSES`, `WEAPONS`, `ARROWS`, `SHIELDS`, `POWERUPS`, `ARENAS`).
   Prefer adding a data field + handling it once in game code over `if (kind === 'x')` checks.
 - `M` (the running match) is owned by `src/game/match.js`; other modules import it and mutate its
   properties, but only match.js reassigns it. Same pattern for `screen` (screens/screens.js),
@@ -20,13 +22,28 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
   imported bindings are only used inside functions, never at module top level.
 - `src/render/` only reads game state; updates happen in `src/game/` and `src/screens/`.
 - Fighter health is `f.maxHp` (from the class), never a hard-coded 100. Weapon stats come from
-  `f.weapon`.
+  `f.weapon` (the one in hand; `f.weapons` holds main + secondary). Cooldowns, potions, move
+  speed and the ultimate are class fields too: per-class numbers go in `CLASSES`, not config.js.
+- Minions are ordinary fighters (`f.minion`, class `minion`) driven by the bot. They count for
+  ultimate charge but not for winning a round (`roundEnding` in match.js).
+- Bots press the same inputs as players: `botInput` returns the same object as `padInput`
+  (see `NO_INPUT` in game/controls.js), so new actions need handling in both.
 - `config/damage.js` is deliberately a classic script setting a global `DAMAGE`, so a typo in it
   falls back to defaults instead of breaking the game. Don't turn it into a module.
 
 ## Game constraints
-- Input is only LT / RT per controller (keyboard: A / D = LT / RT). Gestures: tap LT, tap RT,
-  hold both. New features must be playable with just that.
+- Real time: everyone plays at once, no turns. Each action has a short per-class cooldown.
+- Controls (PS5 layout, standard gamepad mapping; input.js names buttons by what they do):
+  left stick / d-pad = walk, ↓ crouch, ↑ jump; LT aim, RT draw/shoot; ✕ potion, ○ block (held),
+  □ switch weapon, △ arm ultimate. Keyboard: A / D = LT / RT, arrow keys = stick,
+  J ✕ · K ○ · L □ · I △. Menus (settings, lobby) still only use LT / RT gestures: tap LT,
+  tap RT, hold both.
+- Fighters always face the other side and never turn around. They walk only inside `f.zone`:
+  up to `MID_STOP` from the middle and `EDGE_OUT` behind their start. Every arena needs a
+  visible split in the middle: a deadly canyon (`middle: 'canyon'`) or a hill in its height().
+- Free-for-all is switched off (no `mode` row in settings; `settings.mode` stays 'teams'):
+  with enemies on both sides it's undecided which way fighters should face. The ffa code paths
+  (`M.ffa`, scores per player, lobby messages) are kept for when that's decided.
 - Settings are saved in localStorage and validated against `SETTINGS_DEF` options on load, so
   renaming an option value silently resets it to the default.
 - All sound is synthesized (`src/audio/`); there are no asset files.

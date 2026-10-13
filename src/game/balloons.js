@@ -47,7 +47,7 @@ export function popBalloon(b, a) {
                        vy: Math.sin(ang) * sp - 60, t: 0, life: rand(0.5, 0.9), rot: rand(0, 6) });
   }
   const f = a.owner;
-  if (!f.alive) return;
+  if (!f.alive || f.minion) return;                // a minion's stone just pops it
   M.popups.push({ x: b.x, y: b.y - 50, text: `${info.name} → ${f.name}`, color: info.color, t: 0 });
   if (info.shot) f.nextShot = b.type;
   else info.apply(f);

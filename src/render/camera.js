@@ -1,8 +1,6 @@
 // Camera: what part of the world is on screen, and the transforms to draw it.
-import { H, OWN_VIEW_ZOOM, W } from '../config.js';
-import { settings } from '../core/settings.js';
+import { H, W } from '../config.js';
 import { M } from '../game/match.js';
-import { groundY } from '../game/terrain.js';
 import { clamp, lerp } from '../util.js';
 import { canvas, ctx, view } from './canvas.js';
 
@@ -14,46 +12,27 @@ function grow(b, x, y, r) {
   return { x1: Math.min(b.x1, x - r), x2: Math.max(b.x2, x + r), y1: Math.min(b.y1, y - r), y2: Math.max(b.y2, y + r) };
 }
 
-function fitBox(b, maxZ, minZ, reserve) {
-  const z = clamp(Math.min(W / (b.x2 - b.x1), (H - reserve) / (b.y2 - b.y1)), minZ, maxZ);
-  return { x: (b.x1 + b.x2) / 2, y: (b.y1 + b.y2) / 2 - reserve / 2 / z, z };
-}
-
-// Like fitBox, but spare height goes to the sky: the box bottom sits near the screen bottom.
+// Fits a box on screen; spare height goes to the sky: the box bottom sits near the screen bottom.
 function fitBoxGrounded(b, maxZ, minZ) {
   const margin = 40;
   const z = clamp(Math.min(W / (b.x2 - b.x1), (H - HUD_RESERVE - margin) / (b.y2 - b.y1)), minZ, maxZ);
   return { x: (b.x1 + b.x2) / 2, y: b.y2 - (H / 2 - margin) / z, z };
 }
 
+// Both teams, their minions and the shots in the air (not what fell into a canyon).
 function cameraTarget() {
-  // "Everyone at the same time" always shows both teams: nobody's view can be the "own" one.
-  if (settings.view === 'both' || M.turns === 'all' || M.phase === 'matchOver') {
-    let b = null;
-    for (const f of M.fighters) b = grow(b, f.x, f.y - 70, 160);
-    b.y1 = Math.min(b.y1 - 60, M.terrain.minY - 120);
-    b.y2 = Math.max(Math.max(...M.fighters.map(f => f.y)) + 30, M.terrain.maxY + 30);
-    for (const a of M.arrows) b = grow(b, a.x, a.y, 200);
-    return fitBoxGrounded(b, 1, 0.25);
-  }
-  // "only my team": chase the latest arrows, show where they landed, then the shooting team
-  if (M.arrows.length) {
-    const latest = Math.max(...M.arrows.map(a => a.volley));
-    let b = null;
-    for (const a of M.arrows) if (a.volley === latest) b = grow(b, a.x + a.vx * 0.3, a.y + a.vy * 0.15, 0);
-    b = { x1: b.x1 - 500, x2: b.x2 + 500, y1: b.y1 - 300, y2: b.y2 + 300 };
-    return fitBox(b, OWN_VIEW_ZOOM, 0.45, 0);
-  }
-  if ((M.impactHold > 0 || M.phase === 'roundOver') && M.lastImpact) {
-    return { x: M.lastImpact.x, y: M.lastImpact.y - 260, z: OWN_VIEW_ZOOM };
-  }
-  const baseX = M.side === 'L' ? 0 : M.D, facing = M.side === 'L' ? 1 : -1;
-  return { x: baseX + facing * 230, y: groundY(baseX) - 260, z: OWN_VIEW_ZOOM };
+  const shown = M.fighters.filter(f => f.y < M.terrain.maxY + 200);
+  let b = grow(null, M.D / 2, 0, 300);
+  for (const f of shown) b = grow(b, f.x, f.y - 70, 160);
+  b.y1 = Math.min(b.y1 - 60, M.terrain.minY - 120);
+  b.y2 = Math.max(Math.max(...shown.map(f => f.y)) + 30, M.terrain.maxY + 30);
+  for (const a of M.arrows) if (a.y < M.terrain.maxY + 200) b = grow(b, a.x, a.y, 200);
+  return fitBoxGrounded(b, 1, 0.25);
 }
 
 export function updateCamera(dt, snap) {
   const t = cameraTarget();
-  const k = snap ? 1 : 1 - Math.exp(-dt * (M.arrows.length ? 5 : 3));
+  const k = snap ? 1 : 1 - Math.exp(-dt * 3);
   cam.x += (t.x - cam.x) * k;
   cam.y += (t.y - cam.y) * k;
   cam.z = Math.exp(lerp(Math.log(cam.z), Math.log(t.z), k));

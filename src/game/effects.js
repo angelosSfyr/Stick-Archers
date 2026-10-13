@@ -1,4 +1,4 @@
-// Particles: dust, sparks, smoke, blood. Drawn by drawParticles in src/render/draw-match.js.
+// Particles: dust, sparks, blood. Drawn by drawParticles in src/render/draw-match.js.
 import { settings } from '../core/settings.js';
 import { play } from '../audio/sfx.js';
 import { rand } from '../util.js';
@@ -40,20 +40,11 @@ export function sparks(x, y, ang, n) {
   }
 }
 
-// smoke where an archer vanishes / appears when moved across
-export function puff(x, y) {
-  for (let i = 0; i < 14; i++) {
-    const a = rand(0, Math.PI * 2), sp = rand(60, 200);
-    M.particles.push({ kind: 'smoke', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, life: rand(0.5, 0.9), r: rand(10, 22) });
-  }
-}
-
 export function updateParticles(dt) {
   for (const p of M.particles) {
     p.t += dt;
     if (p.kind === 'speck' || p.kind === 'shred') p.vy += 900 * dt;
     if (p.kind === 'blood') p.vy += 1100 * dt;
-    if (p.kind === 'smoke') { p.vx *= Math.exp(-4 * dt); p.vy = p.vy * Math.exp(-4 * dt) - 30 * dt; }
     const prevY = p.y;
     p.x += p.vx * dt;
     p.y += p.vy * dt;

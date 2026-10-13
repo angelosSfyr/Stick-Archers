@@ -1,27 +1,46 @@
-// Screen-space overlays during a match: names and health bars, score, turn timer, banners.
+// Screen-space overlays during a match: names and meters, score, banners.
 import { W } from '../config.js';
 import { T } from '../core/clock.js';
 import { settings } from '../core/settings.js';
 import { POWERUPS } from '../data/powerups.js';
 import { getPose } from '../game/fighter.js';
-import { M, isActive, sideName, teamMembers, teamName, winnerName } from '../game/match.js';
+import { M, sideName, teamMembers, teamName, winnerName } from '../game/match.js';
 import { toScreen } from './camera.js';
 import { ctx, text } from './canvas.js';
 
+function bar(x, y, w, h, frac, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x - w / 2, y, w * Math.max(0, frac), h);
+  ctx.strokeRect(x - w / 2, y, w, h);
+}
+
+// Name, health, and (for archers) shield and ultimate meters, and what they're carrying.
 export function drawFighterOverlay(f) {
   if (!f.alive) return;
-  const head = toScreen(f.x, f.y - 145);
-  const top = head.y - 16;
+  const P = getPose(f);
+  const head = toScreen(P.head.x, P.head.y - 20 * f.size);
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = '#000';
-  ctx.fillStyle = '#000';
-  ctx.fillRect(head.x - 27, top - 6, 54 * f.hp / f.maxHp, 6);
-  ctx.strokeRect(head.x - 27, top - 6, 54, 6);
-  text(f.name, head.x, top - 20, 20, f.color);
+  if (f.minion) {
+    ctx.lineWidth = 1;
+    bar(head.x, head.y - 10, 26, 3, f.hp / f.maxHp, '#777');
+    return;
+  }
+  const top = head.y - 4;
+  const u = f.cls.ultimate, ultFull = u && f.ult >= u.charge;
+  bar(head.x, top - 22, 54, 6, f.hp / f.maxHp, '#000');
+  if (f.shield) bar(head.x, top - 14, 54, 3, f.shieldHp / f.shield.durability, f.shieldBroken ? '#d93636' : '#888');
+  if (u) bar(head.x, top - 9, 54, 3, f.ult / u.charge, ultFull && Math.sin(T * 8) > 0 ? '#ffd24a' : '#c99a12');
+  text(f.name, head.x, top - 36, 20, f.color);
 
-  // what this archer is carrying: a power-up for the next shot, a shaky arm
+  // badges: potions, power-up for the next shot, weapon, ultimate, shaky arm, broken shield
   const badges = [];
+  if (f.cls.potions) badges.push(['✚' + f.potions, f.potions ? '#2c9e4b' : '#bbb']);
+  if (f.ultArmed) badges.push([u.name, '#c99a12']);
+  else if (ultFull) badges.push(['△ ULT', '#c99a12']);
   if (f.nextShot) badges.push([POWERUPS[f.nextShot].label, POWERUPS[f.nextShot].color]);
+  if (f.weaponIdx) badges.push([f.weapon.name.toUpperCase(), '#555']);
+  if (f.shieldBroken) badges.push(['NO SHIELD', '#d93636']);
   if (f.shaky > 0) badges.push(['SHAKY', '#888']);
   let bx = head.x + 34;
   ctx.font = 'bold 12px system-ui, "Segoe UI", sans-serif';
@@ -29,27 +48,14 @@ export function drawFighterOverlay(f) {
     const w = ctx.measureText(label).width + 12;
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.roundRect(bx, top - 29, w, 18, 9);
+    ctx.roundRect(bx, top - 45, w, 18, 9);
     ctx.fill();
-    text(label, bx + w / 2, top - 19.5, 12, '#fff', 'bold');
+    text(label, bx + w / 2, top - 35.5, 12, '#fff', 'bold');
     bx += w + 4;
   }
 
-  if (!isActive(f)) return;
-  if (f.locked) {
-    text('✓ locked in', head.x, top - 44, 15, '#1a9e4b');
-  } else if (M.turns !== 'all') {
-    const y = top - 46 + Math.sin(T * 6) * 4;   // bobbing "your turn" marker
-    ctx.fillStyle = f.color;
-    ctx.beginPath();
-    ctx.moveTo(head.x - 10, y - 8);
-    ctx.lineTo(head.x + 10, y - 8);
-    ctx.lineTo(head.x, y + 6);
-    ctx.closePath();
-    ctx.fill();
-  }
-  if (f.drawing && !f.locked && !f.isBot) {
-    const P = getPose(f), len = 70 + 120 * f.power + 26;
+  if (f.drawing && !f.isBot) {
+    const len = 70 + 120 * f.power + 26;
     const s = toScreen(P.bowHand.x + P.d.x * len, P.bowHand.y + P.d.y * len);
     text(Math.round(f.power * 100) + '%', s.x, s.y, 16, '#555');
   }
@@ -109,24 +115,6 @@ export function drawHUD() {
   drawScore(36, M.ffa ? 26 : 30);
   text(`Round ${M.round}  ·  best of ${settings.rounds}${M.ffa ? '  ·  free-for-all' : ''}`, W / 2, 68, 17, '#777', 'normal');
 
-  const turnShown = (M.phase === 'play' || M.phase === 'roundIntro') && M.handoff === null && M.endT === null;
-  if (turnShown && M.turns === 'all') {
-    text('Everyone shoot!', W / 2, 104, 28);
-  } else if (turnShown && M.shooters.length) {
-    const single = M.shooters.length === 1;
-    const who = single ? M.shooters[0].name : teamName(M.side);
-    text(`${who}'s turn`, W / 2, 104, 28, single ? M.shooters[0].color : '#000');
-    if (settings.turnTime) {
-      const left = Math.max(0, M.turnLeft);
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = '#000';
-      ctx.fillStyle = left < 3 ? '#d93636' : '#000';
-      ctx.fillRect(W / 2 - 120, 128, 240 * left / settings.turnTime, 8);
-      ctx.strokeRect(W / 2 - 120, 128, 240, 8);
-      text(Math.ceil(left) + 's', W / 2 + 148, 132, 16, left < 3 ? '#d93636' : '#000');
-    }
-    if (!single) text('release RT to lock in your shot - the team shoots together', W / 2, 156, 15, '#777', 'normal');
-  }
   if (settings.wind && M.wind) drawWindIndicator(W - 150, 56);
 
   if (M.phase === 'roundIntro') {
