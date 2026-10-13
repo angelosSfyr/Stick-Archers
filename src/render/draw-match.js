@@ -54,6 +54,52 @@ function drawTerrain(vis) {
   ctx.stroke();
 }
 
+// Trees: a light crown and the trunk, behind everything (the branches are ledges, drawn later).
+const CROWN = [[0, -70, 75], [-60, -30, 55], [60, -30, 55], [-35, 15, 45], [40, 15, 45], [0, -10, 60]];
+function drawTrees() {
+  for (const t of M.terrain.trees) {
+    const cy = t.top - 70;
+    ctx.fillStyle = '#f1f1f1';
+    ctx.strokeStyle = '#bbb';
+    ctx.lineWidth = 4;
+    for (const method of ['stroke', 'fill']) {
+      for (const [dx, dy, r] of CROWN) {
+        ctx.beginPath();
+        ctx.arc(t.x + dx, cy + dy, r, 0, Math.PI * 2);
+        ctx[method]();
+      }
+    }
+    ctx.strokeStyle = '#555';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 16;
+    line(t.x, t.y + 4, t.x, cy + 20);
+  }
+}
+
+// Ledges: branches, wooden ledges on posts (and the 2 v 2 platforms, which have no posts).
+function drawLedges() {
+  ctx.lineCap = 'round';
+  for (const p of M.platforms) {
+    ctx.strokeStyle = '#000';
+    if (p.look === 'branch') {
+      ctx.lineWidth = 9;
+      line(p.x1, p.y + 5, p.x2, p.y + 5);
+      ctx.lineWidth = 4;                              // a twig at the outer end
+      const out = Math.sign(p.tip - (p.x1 + p.x2) / 2);
+      line(p.tip - out * 14, p.y + 5, p.tip, p.y - 12);
+      continue;
+    }
+    if (!p.start) {
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 6;
+      for (const x of [p.x1 + 15, p.x2 - 15]) line(x, p.y + 8, x, groundY(x) + 4);
+      ctx.strokeStyle = '#000';
+    }
+    ctx.lineWidth = 10;
+    line(p.x1, p.y + 5, p.x2, p.y + 5);
+  }
+}
+
 // posts marking how far back each side can walk
 function drawBorders() {
   ctx.strokeStyle = '#000';
@@ -192,12 +238,11 @@ export function drawMatch() {
   const vis = visibleWorld();
   worldTransform();
   drawClouds();
+  drawTrees();
   for (const s of M.stuck) drawArrow(s.x, s.y, s.ang + Math.sin(T * 45) * 0.2 * s.wob);
   drawTerrain(vis);
   drawBorders();
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 10;
-  for (const p of M.platforms) line(p.x1, p.y + 5, p.x2, p.y + 5);
+  drawLedges();
   drawStains();
   drawBalloons();
   for (const f of M.fighters) {

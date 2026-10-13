@@ -10,7 +10,7 @@ import { slotIsHigh, slotSide } from '../screens/lobby.js';
 import { distToSegment, lerp, rand } from '../util.js';
 import { drop, dust } from './effects.js';
 import { M } from './match.js';
-import { deathDepth, groundY } from './terrain.js';
+import { deathDepth, groundY, wallAhead } from './terrain.js';
 
 // f.side is where a fighter stands ('L' / 'R'); f.team is who they fight for:
 // the side in team games, their own name in free-for-all. Fighters always face the
@@ -175,6 +175,15 @@ export function jump(f) {
   f.vy = -Math.sqrt(2 * FALL_GRAVITY * f.cls.jumpHeight);
 }
 
+// ↓ + ✕ on a ledge drops through it.
+export function dropDown(f) {
+  startFall(f, false);
+  f.y += 1;                      // just below the ledge, so it doesn't catch them right away
+}
+
+// Steep steps in the ground stop fighters, walking or in the air: they have to jump up them.
+const stepTo = (f, nx) => wallAhead(nx, f.y, Math.sign(nx - f.x)) ? f.x : nx;
+
 // Walking keeps to the fighter's zone. `loose` (knocked about) only keeps them off the
 // far edge, so a hard hit can push someone toward the middle.
 function keepIn(f, x, nx, loose) {
@@ -216,7 +225,7 @@ function moveFighter(f, dt) {
   if (f.falling) {
     if (!f.knocked) f.vx = f.alive ? f.walk : 0;   // jumping or stepping off: steer in the air
     const prevY = f.y;
-    f.x = keepIn(f, f.x, f.x + f.vx * dt, f.knocked);
+    f.x = stepTo(f, keepIn(f, f.x, f.x + f.vx * dt, f.knocked));
     f.y += f.vy * dt;
     f.vy += FALL_GRAVITY * dt;
     if (f.vy > 0) {
@@ -238,11 +247,11 @@ function moveFighter(f, dt) {
 
   const x = f.x;
   if (f.slideV) {
-    f.x = keepIn(f, x, x + f.slideV * dt, true);
+    f.x = stepTo(f, keepIn(f, x, x + f.slideV * dt, true));
     f.slideV *= Math.exp(-10 * dt);
-    if (Math.abs(f.slideV) < 5) f.slideV = 0;
+    if (Math.abs(f.slideV) < 5 || f.x === x) f.slideV = 0;
   } else if (f.walk) {
-    f.x = keepIn(f, x, x + f.walk * dt, false);
+    f.x = stepTo(f, keepIn(f, x, x + f.walk * dt, false));
   }
   if (f.x === x) return;
   if (f.onPlatform) {

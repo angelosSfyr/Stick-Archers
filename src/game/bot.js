@@ -8,9 +8,37 @@ import { shotSpeed } from './combat.js';
 import { NO_INPUT } from './controls.js';
 import { getPose } from './fighter.js';
 import { M, isEnemy } from './match.js';
-import { solidAt } from './terrain.js';
+import { groundY, solidAt, wallAhead } from './terrain.js';
 
 const BLOCK_CHANCE = 0.55;       // how often a bot raises its shield against a shot coming its way
+const CLIMB_CHANCE = 0.6;        // how often a wandering bot heads up onto a ledge instead
+
+// Can it get onto ledge p by jumping straight up at its middle (from the ground, or from
+// ledges in between)?
+function canClimb(f, p) {
+  const x = (p.x1 + p.x2) / 2, reach = f.cls.jumpHeight - 40;
+  let y = groundY(x);
+  const between = M.platforms.filter(q => x >= q.x1 && x <= q.x2 && q.y > p.y).sort((a, b) => b.y - a.y);
+  for (const q of between) if (q.y < y && y - q.y <= reach) y = q.y;
+  return y - p.y <= reach;
+}
+
+const standingOn = f => M.platforms.find(p => f.x >= p.x1 && f.x <= p.x2 && Math.abs(p.y - f.y) < 2) || {};
+const climbable = f => M.platforms.filter(p => !p.start && Math.abs(p.y - f.y) > 2 &&
+  (p.x1 + p.x2) / 2 > f.zone.x1 + 20 && (p.x1 + p.x2) / 2 < f.zone.x2 - 20 && canClimb(f, p));
+
+// Heading for b.climb: walk under its middle and jump. Returns false once it's standing on it.
+function climb(f, out) {
+  const p = f.bot.climb, x = (p.x1 + p.x2) / 2;
+  if (standingOn(f) === p) {
+    f.bot.climb = null;
+    f.bot.walkTo = f.x;
+    return false;
+  }
+  out.move = Math.abs(x - f.x) > 10 ? Math.sign(x - f.x) : 0;
+  if (!f.falling && (Math.abs(x - f.x) < 40 || wallAhead(f.x, f.y, out.move, 25))) out.jump = true;
+  return true;
+}
 
 function simulate(f, angle, power, targetX, collide) {
   const P = getPose(f, angle, power);
@@ -124,13 +152,21 @@ export function botInput(f, dt) {
   if (f.cls.ultimate && f.ult >= f.cls.ultimate.charge && !f.ultArmed && b.phase === 'think') { out.ult = true; return out; }
 
   if (b.phase === 'think') {
-    // wander around home a little between shots
+    // wander around home a little between shots, now and then up onto a ledge or back down
     if ((b.walkT -= dt) <= 0) {
       b.walkT = rand(2, 5);
+      b.climb = null;
       const r = f.minion ? 60 : 160;
       b.walkTo = clamp(b.home + rand(-r, r), f.zone.x1 + 20, f.zone.x2 - 20);
+      if (f.onPlatform && !standingOn(f).start && Math.random() < 0.5) { out.crouch = out.jump = true; return out; }
+      if (!f.onPlatform && f.cls.jumpHeight && Math.random() < CLIMB_CHANCE) b.climb = pick(climbable(f)) || null;
     }
-    if (Math.abs(b.walkTo - f.x) > 8 && !f.onPlatform) { out.move = Math.sign(b.walkTo - f.x); return out; }
+    if (b.climb && climb(f, out)) return out;
+    if (Math.abs(b.walkTo - f.x) > 8 && !f.onPlatform) {
+      out.move = Math.sign(b.walkTo - f.x);
+      if (f.cls.jumpHeight && wallAhead(f.x, f.y, out.move, 25)) out.jump = true;
+      return out;
+    }
     if ((b.timer -= dt) > 0) return out;
 
     if (planShot(f)) b.phase = 'aim';

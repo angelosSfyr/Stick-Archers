@@ -58,7 +58,8 @@ function startRound() {
   M.round++;
   if (!M.terrain || ARENAS[settings.terrain].newEachRound) M.terrain = makeTerrain(settings.terrain, M.D);
   M.fighters = M.roster.map(makeFighter);
-  M.platforms = M.fighters.filter(f => f.onPlatform).map(f => ({ x1: f.x - 60, x2: f.x + 60, y: f.y }));
+  M.platforms = M.fighters.filter(f => f.onPlatform).map(f => ({ x1: f.x - 60, x2: f.x + 60, y: f.y, look: 'plank', start: true }))
+    .concat(M.terrain.ledges);
   if (!M.ffa) {
     for (const side of ['L', 'R']) for (let i = 0; i < settings.minions; i++) M.fighters.push(makeMinion(side, i, settings.minions));
   }

@@ -11,6 +11,7 @@ two (Settings → Single player).
 | --- | --- | --- |
 | Walk | left stick or d-pad ← → | ← → |
 | Jump | ✕ | J |
+| Drop down from a ledge | ↓ + ✕ | ↓ + J |
 | Crouch | stick or d-pad ↓ | ↓ |
 | Aim (sweeps up and down while held) | LT | A |
 | Draw (hold), shoot (release) | RT | D |
@@ -19,6 +20,9 @@ two (Settings → Single player).
 | Arm the ultimate (when the meter is full) | △ | I |
 
 Menus use only LT / RT: tap to move or change, hold both to confirm.
+Every arena has more than one level: steps in the ground are too steep to walk up, so jump
+them, and trees and wooden ledges can be jumped onto from below. Get knocked off one and you take
+fall damage.
 The shield soaks up damage from the front, slowly refills while lowered, and stays broken for
 the rest of the round once it breaks. The ultimate fills with damage you deal (minions too).
 A round is won when the other team's players are down; minions don't count.
@@ -49,7 +53,7 @@ src/
     classes.js          character classes (health, weapon, shield, ultimate, potions, cooldowns), minions
     weapons.js          weapons (damage, draw time, speed), projectiles (heavy, bomb, stone), shields
     powerups.js         balloon power-ups
-    arenas.js           terrain shapes, and what splits the middle (canyon or hill)
+    arenas.js           terrain shapes, trees and ledges, and what splits the middle (canyon or hill)
 
   core/                 settings (saved in localStorage), controller/keyboard input, clock
   screens/              settings screen, lobby (join, pick spots, ready), screen switching
@@ -66,7 +70,9 @@ Drawing code only reads game state and never changes it.
 ## Adding content
 
 **An arena:** add an entry to `ARENAS` in `src/data/arenas.js`. `height(u, m, D)` returns the
-ground height at a point. The middle has to split the two sides: either set `middle: 'canyon'`
+ground height at a point; `cliff` makes a step too steep to walk up (a wall you jump). `ledges(D)`
+lists trees and wooden ledges on team 1's side (mirrored onto team 2's); they become one-way
+platforms in `M.platforms`. The middle has to split the two sides: either set `middle: 'canyon'`
 or put a hill there in `height`. The arena shows up in the settings automatically.
 
 **An arrow type:** add an entry to `ARROWS` in `src/data/weapons.js`. You can set `damageMul`,

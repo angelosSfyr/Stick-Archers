@@ -1,5 +1,5 @@
-// Turning a controller (or a bot) into what a fighter does: move, crouch, jump, block,
-// drink a potion, arm the ultimate, aim (LT) and shoot (RT).
+// Turning a controller (or a bot) into what a fighter does: move, crouch, jump (with ↓: drop
+// down from a ledge), block, drink a potion, arm the ultimate, aim (LT) and shoot (RT).
 // Everything a bot or a player can press is in one "input" object:
 //   { lt, rt, move (-1..1), crouch, block (held), jump, potion, ult (just pressed) }
 import { MAX_ANGLE, MIN_ANGLE, SWEEP_SPEED } from '../config.js';
@@ -7,7 +7,7 @@ import { padState, pressed } from '../core/input.js';
 import { play } from '../audio/sfx.js';
 import { botInput } from './bot.js';
 import { launch } from './combat.js';
-import { jump } from './fighter.js';
+import { dropDown, jump } from './fighter.js';
 import { M } from './match.js';
 
 export const NO_INPUT = { lt: false, rt: false, move: 0, crouch: false, block: false,
@@ -38,7 +38,10 @@ export function controlFighter(f, dt) {
     return;
   }
   if (!f.crouching) f.walk = inp.move * f.cls.moveSpeed;
-  if (inp.jump && f.cls.jumpHeight && !f.falling && !f.crouching && !f.slideV) jump(f);
+  if (inp.jump && !f.falling && !f.slideV) {
+    if (f.crouching && f.onPlatform) dropDown(f);
+    else if (!f.crouching && f.cls.jumpHeight) jump(f);
+  }
   if (inp.potion) drinkPotion(f);
   if (inp.ult) toggleUltimate(f);
   aimAndShoot(f, inp.lt, inp.rt, dt);

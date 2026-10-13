@@ -34,13 +34,17 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
 ## Game constraints
 - Real time: everyone plays at once, no turns. Each action has a short per-class cooldown.
 - Controls (PS5 layout, standard gamepad mapping; input.js names buttons by what they do):
-  left stick / d-pad = walk, ↓ crouch; LT aim, RT draw/shoot; ✕ jump, ○ block (held),
+  left stick / d-pad = walk, ↓ crouch; LT aim, RT draw/shoot; ✕ jump (↓ + ✕ drops off a ledge), ○ block (held),
   □ potion, △ arm ultimate. Keyboard: A / D = LT / RT, ← → ↓ = stick,
   J ✕ · K ○ · L □ · I △. Menus (settings, lobby) still only use LT / RT gestures: tap LT,
   tap RT, hold both.
 - Fighters always face the other side and never turn around. They walk only inside `f.zone`:
   up to `MID_STOP` from the middle and `EDGE_OUT` behind their start. Every arena needs a
   visible split in the middle: a deadly canyon (`middle: 'canyon'`) or a hill in its height().
+- Every arena has several levels: steep steps in the ground are walls (`wallAhead` in terrain.js,
+  checked in moveFighter) that must be jumped, and `ledges()` (trees, wooden ledges) are one-way
+  platforms in `M.platforms`, same as the 2 v 2 start platforms (`start: true`). Ledges are
+  mirrored so neither side gets better ground; keep each level within the archer's jump (420).
 - Free-for-all is switched off (no `mode` row in settings; `settings.mode` stays 'teams'):
   with enemies on both sides it's undecided which way fighters should face. The ffa code paths
   (`M.ffa`, scores per player, lobby messages) are kept for when that's decided.

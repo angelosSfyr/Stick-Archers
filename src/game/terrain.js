@@ -27,7 +27,42 @@ export function makeTerrain(arenaId, D) {
       ys[i] += CANYON_DEPTH * smoothstep(CANYON_HALF + 12, CANYON_HALF - 12, Math.abs(x0 + i * step - D / 2));
     }
   }
+  placeLedges(t, arena.ledges ? arena.ledges(D, params) : [], D);
   return t;
+}
+
+// Ledges (one-way platforms: branches and wooden ledges) and the trees they hang on, from the
+// arena's list for team 1's side, mirrored onto team 2's so neither gets the better ones.
+function placeLedges(t, list, D) {
+  t.ledges = [];
+  t.trees = [];
+  const highestGround = (x1, x2) => {
+    let y = Infinity;
+    for (let x = x1; x <= x2; x += 5) y = Math.min(y, sampleTerrain(t, x));
+    return y;
+  };
+  for (const side of [1, -1]) {
+    const X = m => side > 0 ? m : D - m;
+    // never sunk into the ground, even on a slope
+    const ledge = (m1, m2, y, look) => {
+      const x1 = Math.min(X(m1), X(m2)), x2 = Math.max(X(m1), X(m2));
+      const p = { x1, x2, y: Math.min(y, highestGround(x1, x2) - 50), look };
+      t.ledges.push(p);
+      return p;
+    };
+    for (const d of list) {
+      if (d.tree !== undefined) {
+        const x = X(d.tree), base = sampleTerrain(t, x);
+        const branches = d.branches.map((rise, i) => {
+          const tip = d.tree + (i % 2 ? -1 : 1) * 120;
+          return Object.assign(ledge(d.tree, tip, base - rise, 'branch'), { tip: X(tip) });
+        });
+        t.trees.push({ x, y: base, top: Math.min(...branches.map(b => b.y)) });
+      } else {
+        ledge(d.ledge - d.w / 2, d.ledge + d.w / 2, sampleTerrain(t, X(d.ledge)) - d.rise, 'plank');
+      }
+    }
+  }
 }
 
 function sampleTerrain(t, x) {
@@ -37,6 +72,10 @@ function sampleTerrain(t, x) {
   return lerp(t.ys[i], t.ys[i + 1], f - i);
 }
 export const groundY = x => sampleTerrain(M.terrain, x);
+
+// A step in the ground too steep to walk up: you have to jump it.
+const STEP_UP = 40;
+export const wallAhead = (x, y, dir, reach = 8) => !!dir && groundY(x + dir * reach) < y - STEP_UP;
 
 // Below this a fighter has fallen into the canyon.
 export const deathDepth = () => M.terrain.maxY + 500;
