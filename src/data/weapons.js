@@ -65,13 +65,13 @@ export const ARROWS = {
   fireBomb:      { blast: { radius: 150, damage: 45 }, knock: 0, noStick: true, noInstantKill: true,
                    burn: { radius: 150, time: 3, dps: 12, after: 2 }, look: { fireball: 12 } },
   // the giant's: no headshots either
-  boulder:      { knock: 1.4, noStick: true, noInstantKill: true, hitRadius: 10, look: { boulder: 13 } },
-  heavyBoulder: { damageMul: 1.5, alwaysKnocks: true, knock: 1.8, noStick: true, noInstantKill: true, hitRadius: 14,
-                  look: { boulder: 18 } },
-  bombBoulder:  { blast: { radius: 150, damage: 45 }, knock: 0, noStick: true, noInstantKill: true, hitRadius: 10,
-                  look: { boulder: 13, bomb: true } },
-  megaBoulder:  { ko: true, crush: true, alwaysKnocks: true, knock: 2, noStick: true, noInstantKill: true, hitRadius: 38,
-                  look: { boulder: 40 } },
+  boulder:      { knock: 1.4, noStick: true, noInstantKill: true, hitRadius: 18, look: { boulder: 20 } },
+  heavyBoulder: { damageMul: 1.5, alwaysKnocks: true, knock: 1.8, noStick: true, noInstantKill: true, hitRadius: 24,
+                  look: { boulder: 27 } },
+  bombBoulder:  { blast: { radius: 150, damage: 45 }, knock: 0, noStick: true, noInstantKill: true, hitRadius: 18,
+                  look: { boulder: 20, bomb: true } },
+  megaBoulder:  { ko: true, crush: true, alwaysKnocks: true, knock: 2, noStick: true, noInstantKill: true, hitRadius: 62,
+                  look: { boulder: 66 } },
 };
 
 // Shields, raised with ○. They stop everything coming from the front.
@@ -80,9 +80,10 @@ export const ARROWS = {
 // A burst shield (`burst`) can't be held: pressing ○ raises it for `burst` seconds, and it burns up
 // whatever hits it then. It never breaks; the class's `cooldown.block` says how often it works.
 // A hand (`takes`) is held like a shield and never breaks, but lets `takes` of the damage through
-// (`koTakes` of the fighter's max health from a knock-out shot).
+// (`koTakes` of the fighter's max health from a knock-out shot). `guard`: blocks with the arms
+// lifted in front of the head instead of holding something up.
 export const SHIELDS = {
   buckler:  { name: 'Buckler', durability: 90, regen: 5 },
   fireWard: { name: 'Fire Ward', burst: 0.35 },
-  hand:     { name: 'Hand', takes: 0.1, koTakes: 0.2 },
+  hand:     { name: 'Hand', takes: 0.1, koTakes: 0.2, guard: true },
 };

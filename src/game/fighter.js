@@ -129,6 +129,16 @@ export function getPose(f, angle = f.angle + aimShake(f), pull = f.drawing ? f.p
     kneeL: kneeOf(hip, footL, THIGH * sz, f.facing), kneeR: kneeOf(hip, footR, THIGH * sz, f.facing),
     shieldAt: { x: x + f.facing * 34 * sz, y: y - 72 * k }, shieldHalf: 52 * k,
   };
+  if (f.blocking && f.shield && f.shield.guard) {
+    // forearms up in front of the face, fists by the forehead
+    const fx = x + f.facing * 38 * sz, top = body.head.y - 14 * sz;
+    const fist = { x: fx, y: top };
+    return {
+      ...body, shieldAt: { x: fx, y: body.head.y }, shieldHalf: 34 * k,
+      bowHand: { x: fx - f.facing * 6 * sz, y: top + 8 * sz }, drawHand: fist,
+      elbow: { x: x + f.facing * 44 * sz, y: shoulder.y + 4 * sz }, tip: fist,
+    };
+  }
   if (f.weapon && f.weapon.throws) {
     // the front arm points where the stone goes; the throwing arm winds back as you pull,
     // and swings through right after the throw

@@ -170,17 +170,13 @@ export function drawStickman(f, color, showNock) {
       }
     }
   }
-  if (f.blocking && f.alive && f.shield.takes) {   // a big open palm held up in front
-    const s = P.shieldAt, h = P.shieldHalf * 0.6, w = 8 * sz;
-    ctx.lineWidth = 5 * sz;
-    line(P.shoulder.x, P.shoulder.y, s.x - f.facing * w, s.y + h * 0.5);
+  if (f.blocking && f.alive && f.shield.guard) {   // fists up in front of the face
     ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.ellipse(s.x, s.y + h * 0.25, w, h * 0.7, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = 4 * sz;
-    for (let i = 0; i < 4; i++) line(s.x + (i - 1.5) * 3 * sz * f.facing, s.y - h * 0.3, s.x + (i - 1.5) * 4 * sz * f.facing, s.y - h * (0.85 + (i === 1 || i === 2 ? 0.15 : 0)));
-    line(s.x - f.facing * w * 0.5, s.y + h * 0.3, s.x - f.facing * w * 1.8, s.y - h * 0.1);   // thumb
+    for (const h of [P.bowHand, P.drawHand]) {
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, 6 * sz, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   if (f.blocking && f.alive && f.shield.durability) {   // shield held up in front
     const s = P.shieldAt, h = P.shieldHalf, w = 9 * sz;
