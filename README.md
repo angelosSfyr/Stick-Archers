@@ -9,8 +9,8 @@ Only arrows headshot (an arrow to the head always kills). The pyromancer's ultim
 small fire minion; the giant's throws a mega boulder that knocks out whoever it hits unshielded and
 flattens minions on the way. Bots get a random class.
 Two teams stand on either side of a canyon or hill, each with stone-throwing minions
-(5 by default, set in Settings). Playing alone, you face one bot, or team up with a bot against
-two (Settings → Single player).
+(5 by default, set in Settings). A match is 1 vs 1 or 2 vs 2 (Settings → Match), and bots
+fill every spot no player took.
 
 ## Controls
 

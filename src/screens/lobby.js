@@ -37,8 +37,6 @@ export function lobbyStatus() {
     if (on.length > 1) return { ...base, msg: `${joinNames(on.map(h => 'P' + h.num))} are on the same spot - move apart` };
   }
 
-  const left = humans.filter(h => slotSide(h.slot) === 'L').length;
-  const right = n - left;
   const empty = [0, 1, 2, 3].filter(s => !humans.some(h => h.slot === s));
   let bots = [], mode;
   if (settings.mode !== 'teams') {
@@ -46,21 +44,34 @@ export function lobbyStatus() {
     else if (n < 2) return { ...base, msg: 'Free-for-all needs 2+ players - or pick "bots fill empty spots" in Settings' };
     const plural = (k, word) => `${k} ${word}${k === 1 ? '' : 's'}`;
     mode = `Free-for-all · ${plural(n, 'player')}${bots.length ? ' + ' + plural(bots.length, 'bot') : ''}`;
-  } else if (n === 1 && settings.solo === '2v2') { bots = empty; mode = '2 vs 2 · you + BOT vs 2 BOTS'; }
-  else if (n === 1) { bots = [3 - humans[0].slot]; mode = '1 player vs BOT'; }
-  else if (n === 2) {
-    if (left === 0 || right === 0) return { ...base, msg: '1 vs 1 - stand on opposite sides' };
-    mode = '1 vs 1';
-  } else if (n === 3) {
+  } else if (settings.format === '2v2') {
     bots = empty;
-    mode = '2 vs 1 + BOT';
-  } else mode = '2 vs 2';
+    mode = `2 vs 2 · ${teamLine(bots)}`;
+  } else {
+    // 1 vs 1: one fighter a side; a bot takes the empty side, at the same height as the player
+    if (n > 2) return { ...base, msg: 'Too many players for 1 vs 1 - pick 2 vs 2 in Settings' };
+    const sides = humans.map(h => slotSide(h.slot));
+    if (n === 2 && sides[0] === sides[1]) return { ...base, msg: '1 vs 1 - stand on opposite sides' };
+    if (n === 1) bots = [3 - humans[0].slot];
+    mode = `1 vs 1 · ${teamLine(bots)}`;
+  }
 
   const waiting = humans.filter(h => !h.ready);
   if (waiting.length) {
     return { canStart: false, bots, mode, msg: `Waiting for ${joinNames(waiting.map(h => 'P' + h.num))} - hold LT + RT to get ready` };
   }
   return { canStart: true, bots, mode, msg: '' };
+}
+
+// "P1 + BOT  vs  2 BOTS"
+function teamLine(bots) {
+  const side = s => {
+    const names = humans.filter(h => slotSide(h.slot) === s).map(h => 'P' + h.num);
+    const k = bots.filter(b => slotSide(b) === s).length;
+    if (k) names.push(k > 1 ? `${k} BOTS` : 'BOT');
+    return names.join(' + ');
+  };
+  return `${side('L')}  vs  ${side('R')}`;
 }
 
 function moveHuman(h, dir) {
