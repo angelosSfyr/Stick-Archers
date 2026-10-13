@@ -10,12 +10,12 @@ two (Settings → Single player).
 | Action | Controller | Keyboard |
 | --- | --- | --- |
 | Walk | left stick or d-pad ← → | ← → |
-| Jump / crouch | stick or d-pad ↑ / ↓ | ↑ / ↓ |
+| Jump | ✕ | J |
+| Crouch | stick or d-pad ↓ | ↓ |
 | Aim (sweeps up and down while held) | LT | A |
 | Draw (hold), shoot (release) | RT | D |
-| Drink a potion (3 per round, +35) | ✕ | J |
+| Drink a potion (3 per round, +35) | □ | L |
 | Block with the shield (hold) | ○ | K |
-| Switch to stones and back | □ | L |
 | Arm the ultimate (when the meter is full) | △ | I |
 
 Menus use only LT / RT: tap to move or change, hold both to confirm.
@@ -46,7 +46,7 @@ src/
   util.js               math helpers
 
   data/                 content: add new things here
-    classes.js          character classes (health, weapons, shield, ultimate, potions, cooldowns), minions
+    classes.js          character classes (health, weapon, shield, ultimate, potions, cooldowns), minions
     weapons.js          weapons (damage, draw time, speed), projectiles (heavy, bomb, stone), shields
     powerups.js         balloon power-ups
     arenas.js           terrain shapes, and what splits the middle (canyon or hill)
@@ -77,7 +77,7 @@ field there and handle it in `hitFighter` / `arrowCollides` in `src/game/combat.
 next bow shot (`arrow`, `spread`) or `apply(f)` for an instant effect.
 
 **A weapon:** add an entry to `WEAPONS` in `src/data/weapons.js` and point a class's `weapon`
-or `secondary` at it. Fighters read `f.weapon` for damage, draw time, speed and spread. Set
+at it. Fighters read `f.weapon` for damage, draw time, speed and spread. Set
 `throws: true` for a thrown weapon (it gets the throwing pose). One that fires some other way
 would need its own pose in `getPose` (`src/game/fighter.js`) and its own drawing in
 `drawStickman` (`src/render/draw-common.js`).
@@ -86,7 +86,7 @@ would need its own pose in `getPose` (`src/game/fighter.js`) and its own drawing
 point a class's `shield` at it.
 
 **A character class:** add an entry to `CLASSES` in `src/data/classes.js` (the fields are listed
-at the top of that file: health, weapons, shield, ultimate, potions, speed, jump, cooldowns).
+at the top of that file: health, weapon, shield, ultimate, potions, speed, jump, cooldowns).
 `makeFighter` builds every fighter from its roster entry's `cls`. For now the lobby gives everyone `DEFAULT_CLASS`.
 Letting players choose means adding a picker to `src/screens/lobby.js` and
 `src/render/draw-lobby.js`, and putting the choice in each roster entry.

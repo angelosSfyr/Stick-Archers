@@ -1,15 +1,15 @@
 // Controllers and the keyboard.
 // Menus only use LT / RT and their gestures: 'tapL' / 'tapR' (quick press of one trigger,
 // fired on release) and 'hold' (both triggers held for HOLD_TIME).
-// In a match a pad also has: moveX (-1..1, left stick or d-pad), up / down (stick or d-pad),
-// and the face buttons, named by what they do (PS5 layout): potion ✕, block ○, swap □, ult △.
+// In a match a pad also has: moveX (-1..1, left stick or d-pad), down (stick or d-pad),
+// and the face buttons, named by what they do (PS5 layout): jump ✕, block ○, potion □, ult △.
 // Use `pressed(p, name)` for "just pressed this frame".
 import { HOLD_TIME, STICK_DEAD, TRIGGER_PRESS, TRIGGER_RELEASE } from '../config.js';
 import { unlockAudio } from '../audio/synth.js';
 
-// standard gamepad mapping: 0 ✕, 1 ○, 2 □, 3 △, 6 LT, 7 RT, 12-15 d-pad up / down / left / right
-const FACE = { potion: 0, block: 1, swap: 2, ult: 3 };
-const BUTTONS = ['up', 'down', ...Object.keys(FACE)];
+// standard gamepad mapping: 0 ✕, 1 ○, 2 □, 3 △, 6 LT, 7 RT, 13-15 d-pad down / left / right
+const FACE = { jump: 0, block: 1, potion: 2, ult: 3 };
+const BUTTONS = ['down', ...Object.keys(FACE)];
 
 export const pads = new Map(); // gamepad index (or 'kb') -> pad state
 const NO_PAD = { lt: false, rt: false, ltPrev: false, rtPrev: false, moveX: 0, btn: {}, prev: {}, g: { holdT: 0 }, ev: [] };
@@ -54,8 +54,8 @@ export const consumeAll = () => { for (const p of pads.values()) consumePad(p); 
 // The keyboard is one more controller (pad 'kb'). It shows up once one of its keys is pressed.
 const KEYS = {
   lt: ['KeyA'], rt: ['KeyD'],
-  left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'],
-  potion: ['KeyJ'], block: ['KeyK'], swap: ['KeyL'], ult: ['KeyI'],
+  left: ['ArrowLeft'], right: ['ArrowRight'], down: ['ArrowDown'],
+  jump: ['KeyJ'], block: ['KeyK'], potion: ['KeyL'], ult: ['KeyI'],
 };
 const ALL_KEYS = Object.values(KEYS).flat();
 const keysDown = new Set();
@@ -94,7 +94,6 @@ function readGamepad(gp) {
   const raw = {
     lt: buttonValue(gp, 6), rt: buttonValue(gp, 7),
     moveX: buttonValue(gp, 15) - buttonValue(gp, 14) || sx,
-    up: Math.max(buttonValue(gp, 12), sy < -2 * STICK_DEAD ? 1 : 0),
     down: Math.max(buttonValue(gp, 13), sy > 2 * STICK_DEAD ? 1 : 0),
   };
   for (const [name, i] of Object.entries(FACE)) raw[name] = buttonValue(gp, i);

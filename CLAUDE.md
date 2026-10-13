@@ -22,7 +22,7 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
   imported bindings are only used inside functions, never at module top level.
 - `src/render/` only reads game state; updates happen in `src/game/` and `src/screens/`.
 - Fighter health is `f.maxHp` (from the class), never a hard-coded 100. Weapon stats come from
-  `f.weapon` (the one in hand; `f.weapons` holds main + secondary). Cooldowns, potions, move
+  `f.weapon` (one per class). Cooldowns, potions, move
   speed and the ultimate are class fields too: per-class numbers go in `CLASSES`, not config.js.
 - Minions are ordinary fighters (`f.minion`, class `minion`) driven by the bot. They count for
   ultimate charge but not for winning a round (`roundEnding` in match.js).
@@ -34,8 +34,8 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
 ## Game constraints
 - Real time: everyone plays at once, no turns. Each action has a short per-class cooldown.
 - Controls (PS5 layout, standard gamepad mapping; input.js names buttons by what they do):
-  left stick / d-pad = walk, ↓ crouch, ↑ jump; LT aim, RT draw/shoot; ✕ potion, ○ block (held),
-  □ switch weapon, △ arm ultimate. Keyboard: A / D = LT / RT, arrow keys = stick,
+  left stick / d-pad = walk, ↓ crouch; LT aim, RT draw/shoot; ✕ jump, ○ block (held),
+  □ potion, △ arm ultimate. Keyboard: A / D = LT / RT, ← → ↓ = stick,
   J ✕ · K ○ · L □ · I △. Menus (settings, lobby) still only use LT / RT gestures: tap LT,
   tap RT, hold both.
 - Fighters always face the other side and never turn around. They walk only inside `f.zone`:

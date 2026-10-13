@@ -17,10 +17,9 @@ import { deathDepth, groundY } from './terrain.js';
 // other side and never turn around.
 function baseFighter(cls, side, x, y, extra) {
   const left = side === 'L';
-  const weapons = [cls.weapon, cls.secondary].filter(Boolean).map(w => WEAPONS[w]);
   const shield = cls.shield ? SHIELDS[cls.shield] : null;
   return {
-    cls, weapons, weaponIdx: 0, weapon: weapons[0], size: cls.size || 1, minion: !!cls.minion,
+    cls, weapon: WEAPONS[cls.weapon], size: cls.size || 1, minion: !!cls.minion,
     side, team: left ? 'L' : 'R', order: 0, facing: left ? 1 : -1,
     // how far they can walk: up to the middle (never across), and a bit behind their side
     zone: left ? { x1: -EDGE_OUT, x2: M.D / 2 - MID_STOP } : { x1: M.D / 2 + MID_STOP, x2: M.D + EDGE_OUT },

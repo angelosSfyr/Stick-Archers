@@ -13,7 +13,7 @@ if (damageLoaded) {
 }
 const scaled = k => Object.fromEntries(Object.entries(DMG).map(([part, v]) => [part, Math.round(v * k)]));
 
-// What each weapon does. A fighter gets its weapons from its class (src/data/classes.js).
+// What each weapon does. A fighter gets its weapon from its class (src/data/classes.js).
 //   damage:        damage per body part hit
 //   minSpeed:      projectile speed at 0% draw
 //   maxSpeed:      speed at 100% draw, as a share of the bow's (which depends on the distance between the teams)
@@ -26,8 +26,6 @@ const scaled = k => Object.fromEntries(Object.entries(DMG).map(([part, v]) => [p
 export const WEAPONS = {
   bow:    { name: 'Bow', damage: DMG, minSpeed: 250, maxSpeed: 1, drawTime: 1.0, arrow: 'normal',
             takesPowerups: true, sound: 'shoot' },
-  stones: { name: 'Stones', damage: scaled(0.35), minSpeed: 200, maxSpeed: 0.7, drawTime: 0.6, arrow: 'stone',
-            spread: [-6, 0, 6], throws: true, sound: 'throw' },
   stone:  { name: 'Stone', damage: scaled(0.35), minSpeed: 200, maxSpeed: 0.7, drawTime: 0.8, arrow: 'stone',
             throws: true, sound: 'throw' },
 };

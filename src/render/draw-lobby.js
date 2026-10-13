@@ -55,7 +55,7 @@ export function drawLobby() {
     text(st.mode || `${humans.length} joined`, W / 2, 154, 30);
   }
   text('Tap LT / RT: change spot   ·   Hold LT + RT: ready', W / 2, 196, 22, '#000', 'normal');
-  text('In game:  stick move · ↓ crouch · ↑ jump   ·   LT aim · RT draw, release to shoot   ·   ✕ potion · ○ block · □ stones · △ ultimate',
+  text('In game:  stick move · ↓ crouch   ·   LT aim · RT draw, release to shoot   ·   ✕ jump · ○ block · □ potion · △ ultimate',
        W / 2, 230, 17, '#777', 'normal');
   text('Keyboard:  A = LT · D = RT · arrow keys move   ·   J = ✕ · K = ○ · L = □ · I = △', W / 2, 258, 16, '#999', 'normal');
 

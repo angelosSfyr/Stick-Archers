@@ -1,7 +1,7 @@
 // Turning a controller (or a bot) into what a fighter does: move, crouch, jump, block,
-// drink a potion, switch weapons, arm the ultimate, aim (LT) and shoot (RT).
+// drink a potion, arm the ultimate, aim (LT) and shoot (RT).
 // Everything a bot or a player can press is in one "input" object:
-//   { lt, rt, move (-1..1), crouch, block (held), jump, potion, swap, ult (just pressed) }
+//   { lt, rt, move (-1..1), crouch, block (held), jump, potion, ult (just pressed) }
 import { MAX_ANGLE, MIN_ANGLE, SWEEP_SPEED } from '../config.js';
 import { padState, pressed } from '../core/input.js';
 import { play } from '../audio/sfx.js';
@@ -11,7 +11,7 @@ import { jump } from './fighter.js';
 import { M } from './match.js';
 
 export const NO_INPUT = { lt: false, rt: false, move: 0, crouch: false, block: false,
-                          jump: false, potion: false, swap: false, ult: false };
+                          jump: false, potion: false, ult: false };
 
 function padInput(f) {
   const p = padState(f.pad);
@@ -19,7 +19,7 @@ function padInput(f) {
   if (!p.rt) f.lockR = false;
   return {
     lt: p.lt && !f.lockL, rt: p.rt && !f.lockR, move: p.moveX, crouch: !!p.btn.down, block: !!p.btn.block,
-    jump: pressed(p, 'up'), potion: pressed(p, 'potion'), swap: pressed(p, 'swap'), ult: pressed(p, 'ult'),
+    jump: pressed(p, 'jump'), potion: pressed(p, 'potion'), ult: pressed(p, 'ult'),
   };
 }
 
@@ -40,7 +40,6 @@ export function controlFighter(f, dt) {
   if (!f.crouching) f.walk = inp.move * f.cls.moveSpeed;
   if (inp.jump && f.cls.jumpHeight && !f.falling && !f.crouching && !f.slideV) jump(f);
   if (inp.potion) drinkPotion(f);
-  if (inp.swap) swapWeapon(f);
   if (inp.ult) toggleUltimate(f);
   aimAndShoot(f, inp.lt, inp.rt, dt);
 }
@@ -64,27 +63,12 @@ function drinkPotion(f) {
   play('heal');
 }
 
-function swapWeapon(f, to = (f.weaponIdx + 1) % f.weapons.length) {
-  if (f.weapons.length < 2 || to === f.weaponIdx || !ready(f, 'swap')) return;
-  f.weaponIdx = to;
-  f.weapon = f.weapons[to];
-  f.drawing = false;
-  f.power = 0;
-  f.ultArmed = false;            // the ultimate is a main-weapon shot; the charge is kept
-  cooldown(f, 'swap');
-  play('swap');
-}
-
-// △ with a full meter arms the ultimate (and takes out the main weapon); △ again puts it away.
+// △ with a full meter arms the ultimate; △ again puts it away.
 function toggleUltimate(f) {
   const u = f.cls.ultimate;
   if (!u) return;
   if (f.ultArmed) { f.ultArmed = false; return; }
   if (f.ult < u.charge) return;
-  if (f.weaponIdx !== 0) {
-    f.cd.swap = 0;
-    swapWeapon(f, 0);
-  }
   f.ultArmed = true;
   M.popups.push({ x: f.x, y: f.y - 232, text: u.name, color: '#c99a12', t: 0 });
   play('ult');

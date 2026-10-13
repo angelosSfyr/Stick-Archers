@@ -20,7 +20,7 @@ export const FALL_GRAVITY = 1500;          // fighters in the air (jumping, fall
 export const MID_STOP = 150;               // fighters can walk up to this far from the middle of the map...
 export const EDGE_OUT = 450;               // ...and this far behind their team's starting spot
 export const CANYON_HALF = 110;            // half the width of the deadly canyon some arenas have in the middle
-export const STICK_DEAD = 0.35;            // controller stick dead zone (move); up / down need twice that
+export const STICK_DEAD = 0.35;            // controller stick dead zone (move); down needs twice that
 export const SHAKY_SHOTS = 2;              // shots with a trembling bow after an arm hit
 export const BLOOD = '#a8101b';
 

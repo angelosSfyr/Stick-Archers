@@ -76,10 +76,6 @@ export const SFX = {
   throw(power) {          // a stone leaving the hand
     noise({ dur: 0.16, vol: 0.2 + 0.1 * power, type: 'bandpass', freq: 900, q: 0.7, slideTo: 2200 });
   },
-  swap() {                // switching weapons
-    tone({ freq: 520, type: 'square', dur: 0.05, vol: 0.06 });
-    tone({ freq: 780, type: 'square', at: audio.ctx.currentTime + 0.06, dur: 0.05, vol: 0.06 });
-  },
   shieldBreak() {
     noise({ dur: 0.35, vol: 0.4, type: 'highpass', freq: 1800 });
     tone({ freq: 1400, dur: 0.4, vol: 0.12, slideTo: 300 });

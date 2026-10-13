@@ -33,13 +33,12 @@ export function drawFighterOverlay(f) {
   if (u) bar(head.x, top - 9, 54, 3, f.ult / u.charge, ultFull && Math.sin(T * 8) > 0 ? '#ffd24a' : '#c99a12');
   text(f.name, head.x, top - 36, 20, f.color);
 
-  // badges: potions, power-up for the next shot, weapon, ultimate, shaky arm, broken shield
+  // badges: potions, power-up for the next shot, ultimate, shaky arm, broken shield
   const badges = [];
   if (f.cls.potions) badges.push(['✚' + f.potions, f.potions ? '#2c9e4b' : '#bbb']);
   if (f.ultArmed) badges.push([u.name, '#c99a12']);
   else if (ultFull) badges.push(['△ ULT', '#c99a12']);
   if (f.nextShot) badges.push([POWERUPS[f.nextShot].label, POWERUPS[f.nextShot].color]);
-  if (f.weaponIdx) badges.push([f.weapon.name.toUpperCase(), '#555']);
   if (f.shieldBroken) badges.push(['NO SHIELD', '#d93636']);
   if (f.shaky > 0) badges.push(['SHAKY', '#888']);
   let bx = head.x + 34;

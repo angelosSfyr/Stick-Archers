@@ -133,21 +133,10 @@ export function botInput(f, dt) {
     if (Math.abs(b.walkTo - f.x) > 8 && !f.onPlatform) { out.move = Math.sign(b.walkTo - f.x); return out; }
     if ((b.timer -= dt) > 0) return out;
 
-    // archers: stones now and then against minions, the bow otherwise
-    if (f.weapons.length > 1) {
-      b.wantWeapon ??= !f.ultArmed && b.target && b.target.minion && Math.random() < 0.5 ? 1 : 0;
-      if (b.wantWeapon !== f.weaponIdx) {
-        if (!f.cd.swap) out.swap = true;
-        return out;
-      }
-    }
-    if (planShot(f)) {
-      b.phase = 'aim';
-      b.wantWeapon = null;
-    } else {
+    if (planShot(f)) b.phase = 'aim';
+    else {
       b.target = null;
       b.timer = rand(0.4, 0.8);
-      b.wantWeapon = 0;                      // maybe out of stone range: back to the bow
     }
     return out;
   }
