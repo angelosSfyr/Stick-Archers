@@ -28,6 +28,14 @@ export const CLASSES = {
     moveSpeed: 320, jumpHeight: 420,
     cooldown: { shot: 0.9, potion: 1.5, block: 1.5 },
   },
+  // twice the size and health, slow; blocks with a bare hand that lets a tenth through but never breaks
+  giant: {
+    name: 'Giant', maxHp: 200, weapon: 'boulder', shield: 'hand', size: 2,
+    ultimate: { name: 'MEGA BOULDER', charge: 100, fromTaken: 0.5, perSecond: 2, shot: { arrow: 'megaBoulder' } },
+    potions: 3, maxPotions: 5, potionHeal: 70,
+    moveSpeed: 240, jumpHeight: 420,
+    cooldown: { shot: 1.2, potion: 1.5 },
+  },
   minion: {
     name: 'Minion', maxHp: 60, weapon: 'stone', size: 0.6, minion: true,
     moveSpeed: 135, jumpHeight: 0,

@@ -37,9 +37,35 @@ export function drawFireball(x, y, r) {
   ctx.fill();
 }
 
+// A lumpy grey rock that turns as it moves (so it rolls through the air), with a fuse when it's a bomb.
+const ROCK = [1, 0.86, 0.97, 0.8, 0.94, 0.88, 1, 0.83];
+export function drawBoulder(x, y, r, bomb) {
+  const spin = x / r;
+  ctx.fillStyle = '#8b847b';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = Math.max(2, r / 6);
+  ctx.beginPath();
+  ROCK.forEach((k, i) => {
+    const a = spin + i / ROCK.length * Math.PI * 2;
+    ctx[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * r * k, y + Math.sin(a) * r * k);
+  });
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.lineWidth = Math.max(1.5, r / 10);
+  line(x + Math.cos(spin + 1) * r * 0.2, y + Math.sin(spin + 1) * r * 0.2, x + Math.cos(spin + 0.6) * r * 0.7, y + Math.sin(spin + 0.6) * r * 0.7);
+  if (bomb) {
+    ctx.fillStyle = Math.sin(T * 40) > 0 ? '#ff8a00' : '#ffd000';
+    ctx.beginPath();
+    ctx.arc(x, y - r - 5, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 export function drawArrow(tx, ty, ang, color = '#000', flutter = 0, kind = 'normal') {
   const look = ARROWS[kind].look || {};
   if (look.fireball) { drawFireball(tx, ty, look.fireball); return; }
+  if (look.boulder) { drawBoulder(tx, ty, look.boulder, look.bomb); return; }
   if (look.stone) {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -110,7 +136,8 @@ export function drawStickman(f, color, showNock) {
   if (f.weapon && f.weapon.throws) {
     if (showNock) {                            // the stones in the throwing hand
       const { arrow: kind, spread } = nextShot(f);
-      spread.forEach((_, i) => drawArrow(P.drawHand.x + (i - (spread.length - 1) / 2) * 7, P.drawHand.y - 4, 0, color, 0, kind));
+      const r = (ARROWS[kind].look || {}).boulder || 0;   // a boulder sits on top of the hand
+      spread.forEach((_, i) => drawArrow(P.drawHand.x + (i - (spread.length - 1) / 2) * 7, P.drawHand.y - 4 - r, 0, color, 0, kind));
     }
   } else {
     // bow, and a string that vibrates right after a shot
@@ -143,7 +170,19 @@ export function drawStickman(f, color, showNock) {
       }
     }
   }
-  if (f.blocking && f.alive && !f.shield.burst) {   // shield held up in front
+  if (f.blocking && f.alive && f.shield.takes) {   // a big open palm held up in front
+    const s = P.shieldAt, h = P.shieldHalf * 0.6, w = 8 * sz;
+    ctx.lineWidth = 5 * sz;
+    line(P.shoulder.x, P.shoulder.y, s.x - f.facing * w, s.y + h * 0.5);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y + h * 0.25, w, h * 0.7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 4 * sz;
+    for (let i = 0; i < 4; i++) line(s.x + (i - 1.5) * 3 * sz * f.facing, s.y - h * 0.3, s.x + (i - 1.5) * 4 * sz * f.facing, s.y - h * (0.85 + (i === 1 || i === 2 ? 0.15 : 0)));
+    line(s.x - f.facing * w * 0.5, s.y + h * 0.3, s.x - f.facing * w * 1.8, s.y - h * 0.1);   // thumb
+  }
+  if (f.blocking && f.alive && f.shield.durability) {   // shield held up in front
     const s = P.shieldAt, h = P.shieldHalf, w = 9 * sz;
     ctx.fillStyle = '#fff';
     ctx.lineWidth = 5;

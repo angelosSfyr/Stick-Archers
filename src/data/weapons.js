@@ -32,6 +32,9 @@ export const WEAPONS = {
   fireball: { name: 'Fireball', damage: scaled(0.6), minSpeed: 250, maxSpeed: 0.9, drawTime: 1.0, arrow: 'fireball',
               takesPowerups: true, powerArrows: { heavy: 'heavyFireball', bomb: 'fireBomb' },
               throws: true, sound: 'fireball' },
+  boulder: { name: 'Boulder', damage: scaled(1.2), minSpeed: 220, maxSpeed: 0.9, drawTime: 1.4, arrow: 'boulder',
+             takesPowerups: true, powerArrows: { heavy: 'heavyBoulder', bomb: 'bombBoulder' },
+             throws: true, sound: 'boulder' },
 };
 
 // Projectile types. Everything is optional; leaving a field out means "like a normal arrow".
@@ -44,8 +47,11 @@ export const WEAPONS = {
 //   burn:          sets the ground on fire where it lands (or under whoever it hits) for `time` seconds,
 //                  `radius` px each way; enemies who touch it burn for `dps` damage/s, and keep
 //                  burning `after` seconds once they're out of it
+//   hitRadius:     hits with its whole body (px), not just its centre
+//   ko:            knocks out whoever it hits unshielded; a shield takes it instead (see shieldTakes in combat.js)
+//   crush:         flattens minions and keeps going
 //   look:          how it's drawn: arrowhead size, shaft width, a bomb on the tip, a stone of radius `stone`,
-//                  or a fireball of radius `fireball`
+//                  a boulder of radius `boulder`, or a fireball of radius `fireball`
 export const ARROWS = {
   normal: {},
   heavy:  { damageMul: 1.5, alwaysKnocks: true, knock: 1.3, look: { head: 17, half: 7, width: 4.5 } },
@@ -58,6 +64,14 @@ export const ARROWS = {
                    burn: { radius: 90, time: 3, dps: 12, after: 2 }, look: { fireball: 13 } },
   fireBomb:      { blast: { radius: 150, damage: 45 }, knock: 0, noStick: true, noInstantKill: true,
                    burn: { radius: 150, time: 3, dps: 12, after: 2 }, look: { fireball: 12 } },
+  // the giant's: no headshots either
+  boulder:      { knock: 1.4, noStick: true, noInstantKill: true, hitRadius: 10, look: { boulder: 13 } },
+  heavyBoulder: { damageMul: 1.5, alwaysKnocks: true, knock: 1.8, noStick: true, noInstantKill: true, hitRadius: 14,
+                  look: { boulder: 18 } },
+  bombBoulder:  { blast: { radius: 150, damage: 45 }, knock: 0, noStick: true, noInstantKill: true, hitRadius: 10,
+                  look: { boulder: 13, bomb: true } },
+  megaBoulder:  { ko: true, crush: true, alwaysKnocks: true, knock: 2, noStick: true, noInstantKill: true, hitRadius: 38,
+                  look: { boulder: 40 } },
 };
 
 // Shields, raised with ○. They stop everything coming from the front.
@@ -65,7 +79,10 @@ export const ARROWS = {
 //   regen: durability regained per second while not blocking
 // A burst shield (`burst`) can't be held: pressing ○ raises it for `burst` seconds, and it burns up
 // whatever hits it then. It never breaks; the class's `cooldown.block` says how often it works.
+// A hand (`takes`) is held like a shield and never breaks, but lets `takes` of the damage through
+// (`koTakes` of the fighter's max health from a knock-out shot).
 export const SHIELDS = {
   buckler:  { name: 'Buckler', durability: 90, regen: 5 },
   fireWard: { name: 'Fire Ward', burst: 0.35 },
+  hand:     { name: 'Hand', takes: 0.1, koTakes: 0.2 },
 };

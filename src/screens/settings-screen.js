@@ -48,7 +48,7 @@ export function buildSettings() {
   });
   damageEl.textContent =
     `Damage per hit (out of 100 health), read from config/damage.js:  head ${DMG.head}  ·  torso ${DMG.torso}  ·  ` +
-    `arm ${DMG.arm}  ·  leg ${DMG.leg}.  Head damage is used when "Headshot kills instantly" is off.` +
+    `arm ${DMG.arm}  ·  leg ${DMG.leg}.  An arrow to the head always kills.` +
     (damageLoaded ? '' : '  (config/damage.js not found or has an error, so these are the defaults.)');
 }
 

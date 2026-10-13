@@ -76,6 +76,10 @@ export const SFX = {
   throw(power) {          // a stone leaving the hand
     noise({ dur: 0.16, vol: 0.2 + 0.1 * power, type: 'bandpass', freq: 900, q: 0.7, slideTo: 2200 });
   },
+  boulder(power) {        // a boulder heaved: a grunt-low whoosh
+    noise({ dur: 0.3, vol: 0.3 + 0.15 * power, type: 'lowpass', freq: 300, slideTo: 900 });
+    tone({ freq: 90, dur: 0.22, vol: 0.3, slideTo: 55 });
+  },
   fireball(power) {       // a fireball leaving the hand: a rushing roar
     noise({ dur: 0.35, vol: 0.25 + 0.15 * power, type: 'lowpass', freq: 400, slideTo: 1400 });
     tone({ freq: 90, type: 'sawtooth', dur: 0.3, vol: 0.06, slideTo: 160 });

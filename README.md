@@ -1,10 +1,13 @@
 # Stick Archers
 
 A real-time couch archery game for up to 4 players on controllers (PS5 layout) or the keyboard.
-Each player picks a class in the lobby (△): the **Archer** with bow and shield, or the
+Each player picks a class in the lobby (△): the **Archer** with bow and shield, the
 **Pyromancer**, who throws fireballs that leave the ground burning (anyone who touches it catches
-fire) and has a fire shield that can't be held, only timed. Fireballs never headshot, and the
-pyromancer's ultimate calls up a small fire minion instead of a special shot. Bots get a random class.
+fire) and has a fire shield that can't be held, only timed, or the **Giant**: twice the size and
+health, slow, throws boulders that hit twice as hard as fireballs, and blocks with a bare hand.
+Only arrows headshot (an arrow to the head always kills). The pyromancer's ultimate calls up a
+small fire minion; the giant's throws a mega boulder that knocks out whoever it hits unshielded and
+flattens minions on the way. Bots get a random class.
 Two teams stand on either side of a canyon or hill, each with stone-throwing minions
 (5 by default, set in Settings). Playing alone, you face one bot, or team up with a bot against
 two (Settings → Single player).
@@ -20,7 +23,7 @@ two (Settings → Single player).
 | Aim (sweeps up and down while held; each new press reverses) | LT | A |
 | Draw (hold), shoot (release) | RT | D |
 | Drink a potion (3 per round, +35) | □ | L |
-| Block with the shield (hold; pyromancer: tap just before a hit) | ○ | K |
+| Block with the shield (hold; pyromancer: tap just before a hit; giant: hand, held) | ○ | K |
 | Arm the ultimate (when the meter is full) | △ | I |
 | Pause (continue, restart, quit) | OPTIONS (start) | Esc |
 
@@ -31,7 +34,9 @@ them, and trees and wooden ledges can be jumped onto from below. Get knocked off
 fall damage.
 The archer's shield soaks up damage from the front, slowly refills while lowered, and stays broken for
 the rest of the round once it breaks. The pyromancer's fire ward flares up for a moment on each tap,
-burns up whatever hits it from the front, never breaks, and needs a moment to recharge. The ultimate fills slowly on its own, faster with damage you deal (minions too) and damage you take, or all at once from the ULT balloon.
+burns up whatever hits it from the front, never breaks, and needs a moment to recharge. The giant's
+hand never breaks either, but a tenth of the damage gets through. The mega boulder breaks any
+shield it hits (no damage gets through) except the giant's hand, which takes a fifth of the giant's health. The ultimate fills slowly on its own, faster with damage you deal (minions too) and damage you take, or all at once from the ULT balloon.
 A round is won when the other team's players are down; minions don't count.
 
 ## Running it
@@ -97,8 +102,8 @@ would need its own pose in `getPose` (`src/game/fighter.js`) and its own drawing
 `drawStickman` (`src/render/draw-common.js`).
 
 **A shield:** add an entry to `SHIELDS` in `src/data/weapons.js` (`durability`, `regen` for a held
-shield, or `burst` for one that flares up on each press, with the class's `cooldown.block`) and
-point a class's `shield` at it.
+shield, `burst` for one that flares up on each press, with the class's `cooldown.block`, or `takes`
+for one that never breaks but lets that share of the damage through) and point a class's `shield` at it.
 
 **A character class:** add an entry to `CLASSES` in `src/data/classes.js` (the fields are listed
 at the top of that file: health, weapon, shield, ultimate, potions, speed, jump, cooldowns).

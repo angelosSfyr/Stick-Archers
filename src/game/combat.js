@@ -1,6 +1,5 @@
 // Shooting, arrows in flight, and what they do when they hit something.
 import { ARROW_LEN, FIRE, GRAVITY, HARD_HIT_POWER, SHAKY_SHOTS, WIND_MAX } from '../config.js';
-import { settings } from '../core/settings.js';
 import { play } from '../audio/sfx.js';
 import { nextShot } from '../data/powerups.js';
 import { ARROWS } from '../data/weapons.js';
@@ -35,13 +34,30 @@ export function launch(f) {
 
 // A raised shield soaks up damage from the front. Returns the damage that gets through
 // (only once the shield breaks). A burst shield burns it all up and never breaks.
-function shieldTakes(f, dmg) {
-  if (f.shield.burst) {
+// A hand lets a share through right here (hurting the fighter) and never breaks.
+// A knock-out shot (`ko`) breaks any shield at once instead, but nothing gets through.
+function shieldTakes(f, dmg, by, ko = false) {
+  const s = f.shield;
+  if (s.takes) {
+    const through = Math.max(1, Math.round(ko ? f.maxHp * s.koTakes : dmg * s.takes));
+    play('block');
+    M.popups.push({ x: f.x, y: f.y - 200 * f.size, text: `BLOCKED  -${through}`, t: 0 });
+    hurt(f, through, by);
+    return 0;
+  }
+  if (s.burst && ko) {
+    f.wardT = 0;
+    f.blocking = false;
+    play('shieldBreak');
+    M.popups.push({ x: f.x, y: f.y - 200, text: 'WARD SMASHED', color: FIRE, big: true, t: 0 });
+    return 0;
+  }
+  if (s.burst) {
     play('fizzle');
     M.popups.push({ x: f.x, y: f.y - 200, text: 'BURNED UP', color: FIRE, t: 0 });
     return 0;
   }
-  f.shieldHp -= dmg;
+  f.shieldHp -= ko ? f.shieldHp : dmg;
   play('block');
   M.popups.push({ x: f.x, y: f.y - 200, text: 'BLOCKED', t: 0 });
   if (f.shieldHp > 0) return 0;
@@ -69,28 +85,29 @@ function hitFighter(f, zone, x, y, a) {
     if (kind.blast) { explode(x, y, a.owner, f, kind.blast); a.kind = 'normal'; }
     return 'blocked';
   }
-  const instantKill = zone === 'head' && settings.headshot && !kind.noInstantKill;
+  const instantKill = zone === 'head' && !kind.noInstantKill;
   const part = zone === 'shield' ? 'torso' : zone;
   let dmg = a.owner.weapon.damage[part];
   if (kind.damageMul) dmg = Math.round(dmg * kind.damageMul);
   if (f.blocking && (zone === 'shield' || a.vx * f.facing < 0)) {
-    if (f.shield.burst) { shieldTakes(f, dmg); embers(x, y, 14); return 'burned'; }
+    if (f.shield.burst && !kind.ko) { shieldTakes(f, dmg, a.owner); embers(x, y, 14); return 'burned'; }
     sparks(x, y, ang, 10);
+    if (kind.ko) M.shake = Math.max(M.shake, 0.5);
     if (kind.blast) { explode(x, y, a.owner, f, kind.blast); a.kind = 'normal'; }
-    dmg = shieldTakes(f, dmg);
+    dmg = shieldTakes(f, dmg, a.owner, kind.ko);
     if (!dmg) return 'blocked';
     if (zone === 'shield') zone = 'torso';
-  } else if (instantKill) {
+  } else if (instantKill || kind.ko) {
     dmg = f.hp;
   }
   if (!kind.noStick) f.stuck.push({ x: x + Math.cos(ang) * 10 - f.x, y: y + Math.sin(ang) * 10 - f.y, ang, wob: 1 });
   sparks(x, y, ang, zone === 'head' ? 12 : 7);
   bleed(f, x, y, ang, (zone === 'head' ? 1.6 : 1) * (kind.noStick ? 0.4 : 1));
   play(zone === 'head' ? 'headshot' : 'hit');
-  M.shake = Math.max(M.shake, (zone === 'head' ? 0.35 : 0.2) * (f.minion ? 0.4 : 1));
-  let label = zone === 'head' ? (dmg >= f.hp && instantKill ? 'HEADSHOT!' : `HEADSHOT  -${dmg}`) : `${zone.toUpperCase()}  -${dmg}`;
+  M.shake = Math.max(M.shake, kind.ko ? 0.6 : (zone === 'head' ? 0.35 : 0.2) * (f.minion ? 0.4 : 1));
+  let label = kind.ko ? 'CRUSHED!' : zone === 'head' ? (dmg >= f.hp && instantKill ? 'HEADSHOT!' : `HEADSHOT  -${dmg}`) : `${zone.toUpperCase()}  -${dmg}`;
   if (zone === 'arm' && f.hp > dmg && !f.minion) { f.shaky = SHAKY_SHOTS; label += '  ·  SHAKY AIM'; }
-  M.popups.push({ x: f.x, y: f.y - 200 * f.size, text: label, big: zone === 'head' && !f.minion, t: 0 });
+  M.popups.push({ x: f.x, y: f.y - 200 * f.size, text: label, big: (zone === 'head' || kind.ko) && !f.minion, t: 0 });
   hurt(f, dmg, a.owner);
   // hard hits (heavy arrows, or shots drawn with lots of power) push the fighter back
   if ((kind.knock ?? 1) > 0 && (kind.alwaysKnocks || a.power >= HARD_HIT_POWER)) knock(f, Math.sign(a.vx), kind.knock ?? 1);
@@ -125,7 +142,7 @@ function explode(x, y, owner, spare, blast) {
       continue;
     }
     let dmg = Math.round(lerp(blast.damage, 10, d / blast.radius));
-    if (f.blocking && fromFront(f, x) && !(dmg = shieldTakes(f, dmg))) continue;
+    if (f.blocking && fromFront(f, x) && !(dmg = shieldTakes(f, dmg, owner))) continue;
     M.popups.push({ x: f.x, y: f.y - 170, text: `BLAST  -${dmg}`, t: 0 });
     bleed(f, f.x, f.y - 70, Math.atan2(f.y - 70 - y, f.x - x), 0.8);
     hurt(f, dmg, owner);
@@ -171,17 +188,26 @@ export function updateFires(dt) {
   }
 }
 
+// Big projectiles hit with their whole body: the centre first, then points around the edge.
+function zoneNear(f, px, py, r) {
+  let zone = hitZone(f, px, py);
+  for (let i = 0; i < 8 && r && !zone; i++) zone = hitZone(f, px + Math.cos(i * Math.PI / 4) * r, py + Math.sin(i * Math.PI / 4) * r);
+  return zone;
+}
+
 function arrowCollides(a, px, py) {
   const ang = Math.atan2(a.vy, a.vx), c = Math.cos(ang), s = Math.sin(ang);
+  const kind = ARROWS[a.kind], r = kind.hitRadius || 0;
   if (!a.spent) {
     for (const b of M.balloons) {
-      if (Math.hypot(px - b.x, py - b.y) < 30) { popBalloon(b, a); break; }
+      if (Math.hypot(px - b.x, py - b.y) < 30 + r) { popBalloon(b, a); break; }
     }
     for (const f of M.fighters) {
       if (!f.alive || f.gone || !isEnemy(a.owner, f)) continue;   // no friendly fire in team games
-      const zone = hitZone(f, px, py);
+      const zone = zoneNear(f, px, py, r);
       if (!zone) continue;
       const res = hitFighter(f, zone, px, py, a);
+      if (res === 'hit' && kind.crush && f.minion) continue;   // rolls right over minions
       if (res === 'burned') return { x: px, y: py };
       if (res === 'blocked') {
         a.spent = true;                                // bounces off the shield and drops
@@ -192,9 +218,9 @@ function arrowCollides(a, px, py) {
       return { x: px, y: py };
     }
   }
-  const kind = ARROWS[a.kind], blast = !a.spent && kind.blast, burn = !a.spent && kind.burn;
+  const blast = !a.spent && kind.blast, burn = !a.spent && kind.burn;
   const gy = groundY(px);
-  if (py >= gy) {
+  if (py + r >= gy) {
     if (!kind.noStick) M.stuck.push({ x: px + c * 12, y: py + s * 12, ang, wob: 1 });
     dust(px, gy, a.vx);
     if (blast) explode(px, gy, a.owner, null, blast);
@@ -202,7 +228,7 @@ function arrowCollides(a, px, py) {
     return { x: px, y: gy };
   }
   for (const p of M.platforms) {
-    if (px >= p.x1 && px <= p.x2 && py >= p.y && py <= p.y + 10) {
+    if (px >= p.x1 && px <= p.x2 && py + r >= p.y && py + r <= p.y + 10) {
       if (!kind.noStick) M.stuck.push({ x: px + c * 6, y: py + s * 6, ang, wob: 1 });
       dust(px, p.y, a.vx);
       if (blast) explode(px, p.y, a.owner, null, blast);

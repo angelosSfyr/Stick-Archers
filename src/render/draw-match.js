@@ -125,12 +125,12 @@ function drawAimGuides(f) {
 }
 
 function drawFlyingArrow(a) {
-  const fireball = (ARROWS[a.kind].look || {}).fireball;   // leaves a trail of smoke and fire
+  const look = ARROWS[a.kind].look || {}, fireball = look.fireball;   // leaves a trail of smoke and fire
   ctx.lineCap = 'round';
   for (let i = 1; i < a.trail.length; i++) {
     const k = i / a.trail.length;
     ctx.strokeStyle = fireball ? `rgba(226,88,27,${0.45 * k})` : `rgba(0,0,0,${0.22 * k})`;
-    ctx.lineWidth = fireball ? fireball * 1.8 * k : 1 + 3 * k;
+    ctx.lineWidth = fireball ? fireball * 1.8 * k : (1 + 3 * k) * (look.boulder ? look.boulder / 8 : 1);
     line(a.trail[i - 1].x, a.trail[i - 1].y, a.trail[i].x, a.trail[i].y);
   }
   drawArrow(a.x, a.y, Math.atan2(a.vy, a.vx), '#000', Math.sin(T * 50) * 1.5, a.kind);

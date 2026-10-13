@@ -23,7 +23,7 @@ function fitBoxGrounded(b, maxZ, minZ) {
 function cameraTarget() {
   const shown = M.fighters.filter(f => f.y < M.terrain.maxY + 200);
   let b = grow(null, M.D / 2, 0, 300);
-  for (const f of shown) b = grow(b, f.x, f.y - 70, 160);
+  for (const f of shown) b = grow(b, f.x, f.y - 70 * f.size, 160 * f.size);   // giants need more headroom
   b.y1 = Math.min(b.y1 - 60, M.terrain.minY - 120);
   b.y2 = Math.max(Math.max(...shown.map(f => f.y)) + 30, M.terrain.maxY + 30);
   for (const a of M.arrows) if (a.y < M.terrain.maxY + 200) b = grow(b, a.x, a.y, 200);

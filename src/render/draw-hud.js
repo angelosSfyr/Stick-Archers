@@ -31,7 +31,7 @@ export function drawFighterOverlay(f) {
   const u = f.cls.ultimate, ultFull = u && f.ult >= u.charge;
   bar(head.x, top - 22, 54, 6, f.hp / f.maxHp, '#000');
   if (f.shield && f.shield.burst) bar(head.x, top - 14, 54, 3, 1 - (f.cd.block || 0) / f.cls.cooldown.block, FIRE);
-  else if (f.shield) bar(head.x, top - 14, 54, 3, f.shieldHp / f.shield.durability, f.shieldBroken ? '#d93636' : '#888');
+  else if (f.shield && f.shield.durability) bar(head.x, top - 14, 54, 3, f.shieldHp / f.shield.durability, f.shieldBroken ? '#d93636' : '#888');
   if (u) bar(head.x, top - 9, 54, 3, f.ult / u.charge, ultFull && Math.sin(T * 8) > 0 ? '#ffd24a' : '#c99a12');
   text(f.name, head.x, top - 36, 20, f.color);
 

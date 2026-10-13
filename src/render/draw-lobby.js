@@ -82,6 +82,7 @@ export function drawLobby() {
     const isBot = st.bots.includes(s);
     const cls = CLASSES[on.length ? on[0].cls : DEFAULT_CLASS];   // shows the class picked there
     const dummy = { x: slot.x, y: slot.y, facing: s < 2 ? 1 : -1, angle: 20, cls, weapon: WEAPONS[cls.weapon],
+                    size: Math.min(cls.size || 1, 1.3),   // bigger classes look bigger, but stay clear of the labels
                     drawing: false, power: 0, alive: true, stuck: [] };
     drawStickman(dummy, on.length ? '#000' : isBot ? '#999' : '#e4e4e4', false);
     text(settings.mode === 'teams' ? slot.name : slot.ffaName, slot.x, slot.y + (slotIsHigh(s) ? 32 : 34), 14, '#999', 'normal');
