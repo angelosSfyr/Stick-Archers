@@ -156,7 +156,7 @@ export function hitZone(f, px, py) {
   return null;
 }
 
-const chargeUlt = (f, amount) => {
+export const chargeUlt = (f, amount) => {
   const ult = f.cls.ultimate;
   if (!ult || f.ult >= ult.charge) return;
   f.ult = Math.min(ult.charge, f.ult + amount);

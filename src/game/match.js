@@ -14,7 +14,7 @@ import { balloonCount, spawnBalloon, updateBalloons } from './balloons.js';
 import { updateArrows, updateFires } from './combat.js';
 import { controlFighter, idle } from './controls.js';
 import { updateParticles } from './effects.js';
-import { animateFighter, makeFighter, makeMinion } from './fighter.js';
+import { animateFighter, chargeUlt, makeFighter, makeMinion } from './fighter.js';
 import { makeClouds, makeStreaks, updateSky } from './sky.js';
 import { makeTerrain } from './terrain.js';
 
@@ -136,6 +136,8 @@ function updatePlay(dt) {
   for (const f of M.fighters) {
     if (isPresent(f)) controlFighter(f, dt);
     else idle(f);
+    // the ultimate also fills slowly on its own, so every round has a chance at one
+    if (f.alive && f.cls.ultimate) chargeUlt(f, (f.cls.ultimate.perSecond || 0) * dt);
   }
 }
 
