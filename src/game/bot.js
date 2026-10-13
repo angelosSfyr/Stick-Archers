@@ -11,7 +11,8 @@ import { M, isEnemy } from './match.js';
 import { groundY, solidAt, wallAhead } from './terrain.js';
 
 const BLOCK_CHANCE = 0.55;       // how often a bot raises its shield against a shot coming its way
-const CLIMB_CHANCE = 0.6;        // how often a wandering bot heads up onto a ledge instead
+const CLIMB_CHANCE = 0.6;
+const WARD_LEAD = 0.2;           // a burst shield goes up this many seconds before the shot arrives        // how often a wandering bot heads up onto a ledge instead
 
 // Can it get onto ledge p by jumping straight up at its middle (from the ground, or from
 // ledges in between)?
@@ -125,21 +126,23 @@ function planShot(f) {
   return false;
 }
 
-// An enemy shot coming down near this fighter, from the front.
+// An enemy shot coming down near this fighter, from the front: within `reach` px, or
+// (for a burst shield, which has to be timed) about to arrive.
 function incoming(f) {
+  const reach = a => f.shield.burst ? Math.abs(a.vx) * WARD_LEAD + 40 : 320;
   return M.arrows.find(a => !a.spent && isEnemy(a.owner, f) && a.vx * f.facing < 0 &&
-                            Math.abs(a.x - f.x) < 320 && a.y > f.y - 600 && !f.bot.seen.has(a));
+                            Math.abs(a.x - f.x) < reach(a) && a.y > f.y - 600 && !f.bot.seen.has(a));
 }
 
 export function botInput(f, dt) {
   const b = f.bot, out = { ...NO_INPUT };
 
   // defend: raise the shield against some of the shots coming in
-  if (f.shield && !f.shieldBroken) {
+  if (f.shield && !f.shieldBroken && !f.cd.block) {
     const a = incoming(f);
     if (a) {
       b.seen.add(a);
-      if (Math.random() < BLOCK_CHANCE) b.blockT = rand(0.5, 0.8);
+      if (Math.random() < BLOCK_CHANCE) b.blockT = f.shield.burst || rand(0.5, 0.8);
     }
   }
   if (b.blockT > 0) {

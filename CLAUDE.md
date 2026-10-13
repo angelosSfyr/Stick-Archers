@@ -37,7 +37,10 @@ README.md has the folder layout and "how to add X" guides; keep it current when 
   left stick / d-pad = walk, ↓ crouch; LT aim, RT draw/shoot; ✕ jump (↓ + ✕ drops off a ledge), ○ block (held),
   □ potion, △ arm ultimate, START (button 9) pause. Keyboard: A / D = LT / RT, ← → ↑ ↓ = stick,
   J ✕ · K ○ · L □ · I △ · Esc START. Menus (settings, lobby) still only use LT / RT gestures: tap LT,
-  tap RT, hold both. The pause menu (`M.paused`, screens/pause.js) also takes ↑ ↓ / ✕ / ○.
+  tap RT, hold both; the lobby also takes △ to change class. The pause menu (`M.paused`,
+  screens/pause.js) also takes ↑ ↓ / ✕ / ○.
+- Classes: archer (bow, held shield) and pyromancer (fireballs that leave burning ground, a fire ward
+  that's tapped, not held: `burst` shields). Players pick in the lobby; bots get a random `PLAYABLE` class.
 - Fighters always face the other side and never turn around. They walk only inside `f.zone`:
   up to `MID_STOP` from the middle and `EDGE_OUT` behind their start. Every arena needs a
   visible split in the middle: a deadly canyon (`middle: 'canyon'`) or a hill in its height().

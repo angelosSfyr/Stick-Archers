@@ -1,12 +1,12 @@
-// Lobby: join, pick a spot, get ready
-// Spot -1 is the settings gear; 0..3 are the team spots (LT / RT walk through them).
+// Lobby: join, pick a spot and a class, get ready
+// Spot -1 is the settings gear; 0..3 are the team spots (LT / RT walk through them). △ picks the class.
 // Drawn by src/render/draw-lobby.js.
 import { BOT_COLOR, COUNTDOWN, PLAYER_COLORS } from '../config.js';
 import { settings } from '../core/settings.js';
-import { consumePad, padState, pads } from '../core/input.js';
-import { DEFAULT_CLASS } from '../data/classes.js';
+import { consumePad, padState, pads, pressed } from '../core/input.js';
+import { DEFAULT_CLASS, PLAYABLE } from '../data/classes.js';
 import { startMatch } from '../game/match.js';
-import { joinNames } from '../util.js';
+import { joinNames, pick } from '../util.js';
 import { showScreen } from './screens.js';
 
 export const LOBBY_SLOTS = [
@@ -19,7 +19,7 @@ export const GEAR = { x: 90, y: 700 };
 export const slotSide = slot => slot < 2 ? 'L' : 'R';
 export const slotIsHigh = slot => slot === 0 || slot === 3;
 
-export const humans = [];    // { num, pad, slot, ready, flash }
+export const humans = [];    // { num, pad, slot, cls, ready, flash }
 export let countdownT = null;
 
 export function lobbyStatus() {
@@ -97,7 +97,7 @@ export function updateLobby(dt) {
     if (humans.some(h => h.pad === idx)) continue;
     if ((p.lt && !p.ltPrev) || (p.rt && !p.rtPrev)) {
       const num = [1, 2, 3, 4].find(n => !humans.some(h => h.num === n));
-      humans.push({ num, pad: idx, slot: freeSlot(), ready: false, flash: 0 });
+      humans.push({ num, pad: idx, slot: freeSlot(), cls: DEFAULT_CLASS, ready: false, flash: 0 });
       humans.sort((a, b) => a.num - b.num);
       consumePad(p);   // the joining press is not a tap
     }
@@ -105,7 +105,9 @@ export function updateLobby(dt) {
 
   for (const h of humans) {
     h.flash = Math.max(0, h.flash - dt);
-    for (const e of padState(h.pad).ev) {
+    const p = padState(h.pad);
+    if (pressed(p, 'ult') && !h.ready) h.cls = PLAYABLE[(PLAYABLE.indexOf(h.cls) + 1) % PLAYABLE.length];
+    for (const e of p.ev) {
       if (e === 'hold') {
         if (h.slot === -1) { showScreen('settings'); return; }
         toggleReady(h);
@@ -119,11 +121,11 @@ export function updateLobby(dt) {
   if (!st.canStart) countdownT = null;
   else if (countdownT === null) countdownT = COUNTDOWN;
   else if ((countdownT -= dt) <= 0) {
-    // everyone plays the default class until the lobby gets a class picker
-    const roster = humans.map(h => ({ name: 'P' + h.num, pad: h.pad, slot: h.slot, cls: DEFAULT_CLASS,
+    const roster = humans.map(h => ({ name: 'P' + h.num, pad: h.pad, slot: h.slot, cls: h.cls,
                                       color: PLAYER_COLORS[h.num - 1], isBot: false }));
+    // bots get a random class each match
     st.bots.forEach((slot, i) =>
-      roster.push({ name: i ? `BOT ${i + 1}` : 'BOT', pad: null, slot, cls: DEFAULT_CLASS, color: BOT_COLOR, isBot: true }));
+      roster.push({ name: i ? `BOT ${i + 1}` : 'BOT', pad: null, slot, cls: pick(PLAYABLE), color: BOT_COLOR, isBot: true }));
     startMatch(roster);
   }
 }

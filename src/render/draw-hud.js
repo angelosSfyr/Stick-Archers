@@ -1,5 +1,5 @@
 // Screen-space overlays during a match: names and meters, score, banners.
-import { H, W } from '../config.js';
+import { FIRE, H, W } from '../config.js';
 import { T } from '../core/clock.js';
 import { settings } from '../core/settings.js';
 import { POWERUPS } from '../data/powerups.js';
@@ -15,11 +15,11 @@ function bar(x, y, w, h, frac, color) {
   ctx.strokeRect(x - w / 2, y, w, h);
 }
 
-// Name, health, and (for archers) shield and ultimate meters, and what they're carrying.
+// Name, health, and shield (a burst shield shows its cooldown) and ultimate meters, and what they're carrying.
 export function drawFighterOverlay(f) {
   if (!f.alive) return;
   const P = getPose(f);
-  const head = toScreen(P.head.x, P.head.y - 20 * f.size);
+  const head = toScreen(P.head.x, P.head.y - (f.cls.hat ? 50 : 20) * f.size);   // above the hat, if any
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = '#000';
   if (f.minion) {
@@ -30,7 +30,8 @@ export function drawFighterOverlay(f) {
   const top = head.y - 4;
   const u = f.cls.ultimate, ultFull = u && f.ult >= u.charge;
   bar(head.x, top - 22, 54, 6, f.hp / f.maxHp, '#000');
-  if (f.shield) bar(head.x, top - 14, 54, 3, f.shieldHp / f.shield.durability, f.shieldBroken ? '#d93636' : '#888');
+  if (f.shield && f.shield.burst) bar(head.x, top - 14, 54, 3, 1 - (f.cd.block || 0) / f.cls.cooldown.block, FIRE);
+  else if (f.shield) bar(head.x, top - 14, 54, 3, f.shieldHp / f.shield.durability, f.shieldBroken ? '#d93636' : '#888');
   if (u) bar(head.x, top - 9, 54, 3, f.ult / u.charge, ultFull && Math.sin(T * 8) > 0 ? '#ffd24a' : '#c99a12');
   text(f.name, head.x, top - 36, 20, f.color);
 
@@ -42,6 +43,7 @@ export function drawFighterOverlay(f) {
   if (f.nextShot) badges.push([POWERUPS[f.nextShot].label, POWERUPS[f.nextShot].color]);
   if (f.shieldBroken) badges.push(['NO SHIELD', '#d93636']);
   if (f.shaky > 0) badges.push(['SHAKY', '#888']);
+  if (f.burnT > 0) badges.push(['ON FIRE', FIRE]);
   let bx = head.x + 34;
   ctx.font = 'bold 12px system-ui, "Segoe UI", sans-serif';
   for (const [label, color] of badges) {

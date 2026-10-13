@@ -2,6 +2,8 @@
 import { BOT_COLOR, HOLD_TIME, PLAYER_COLORS, W } from '../config.js';
 import { settings, settingsSummary } from '../core/settings.js';
 import { padState, pads } from '../core/input.js';
+import { CLASSES, DEFAULT_CLASS } from '../data/classes.js';
+import { WEAPONS } from '../data/weapons.js';
 import { countdownT, GEAR, humans, LOBBY_SLOTS, lobbyStatus, slotIsHigh } from '../screens/lobby.js';
 import { ctx, line, text, view } from './canvas.js';
 import { drawStickman } from './draw-common.js';
@@ -23,22 +25,24 @@ function drawGear(x, y, color) {
   ctx.stroke();
 }
 
-function drawHumanLabels(list, x, y, crowded) {
+function drawHumanLabels(list, x, y, crowded, showClass) {
   for (const h of list) {
     const p = padState(h.pad);
     const clash = crowded || h.flash > 0;
     const name = 'P' + h.num + (h.pad === 'kb' ? ' ⌨' : '') + (clash ? ' !' : '');
     text(name, x, y, p.lt || p.rt ? 28 : 24, clash ? '#d93636' : PLAYER_COLORS[h.num - 1]);
+    if (showClass) text(CLASSES[h.cls].name.toUpperCase() + (h.ready ? '' : '  △'), x, y + 22, 14, '#555');
+    const ry = y + (showClass ? 40 : 22);
     if (h.ready) {
-      text('READY', x, y + 22, 15, '#1a9e4b');
+      text('READY', x, ry, 15, '#1a9e4b');
     } else if (p.g.holdT > 0) {
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 1;
-      ctx.strokeRect(x - 25, y + 17, 50, 6);
+      ctx.strokeRect(x - 25, ry - 5, 50, 6);
       ctx.fillStyle = '#000';
-      ctx.fillRect(x - 25, y + 17, 50 * p.g.holdT / HOLD_TIME, 6);
+      ctx.fillRect(x - 25, ry - 5, 50 * p.g.holdT / HOLD_TIME, 6);
     }
-    y -= 52;
+    y -= showClass ? 70 : 52;
   }
 }
 
@@ -54,7 +58,7 @@ export function drawLobby() {
   } else {
     text(st.mode || `${humans.length} joined`, W / 2, 154, 30);
   }
-  text('Tap LT / RT: change spot   ·   Hold LT + RT: ready', W / 2, 196, 22, '#000', 'normal');
+  text('Tap LT / RT: change spot   ·   △: change class   ·   Hold LT + RT: ready', W / 2, 196, 22, '#000', 'normal');
   text('In game:  stick move · ↓ crouch   ·   LT aim · RT draw, release to shoot   ·   ✕ jump · ○ block · □ potion · △ ultimate',
        W / 2, 230, 17, '#777', 'normal');
   text('Keyboard:  A = LT · D = RT · arrow keys move   ·   J = ✕ · K = ○ · L = □ · I = △', W / 2, 258, 16, '#999', 'normal');
@@ -76,12 +80,13 @@ export function drawLobby() {
     const slot = LOBBY_SLOTS[s];
     const on = humans.filter(h => h.slot === s);
     const isBot = st.bots.includes(s);
-    const dummy = { x: slot.x, y: slot.y, facing: s < 2 ? 1 : -1, angle: 20,
+    const cls = CLASSES[on.length ? on[0].cls : DEFAULT_CLASS];   // shows the class picked there
+    const dummy = { x: slot.x, y: slot.y, facing: s < 2 ? 1 : -1, angle: 20, cls, weapon: WEAPONS[cls.weapon],
                     drawing: false, power: 0, alive: true, stuck: [] };
     drawStickman(dummy, on.length ? '#000' : isBot ? '#999' : '#e4e4e4', false);
     text(settings.mode === 'teams' ? slot.name : slot.ffaName, slot.x, slot.y + (slotIsHigh(s) ? 32 : 34), 14, '#999', 'normal');
 
-    if (on.length) drawHumanLabels(on, slot.x, slot.y - 192, on.length > 1);
+    if (on.length) drawHumanLabels(on, slot.x, slot.y - 232, on.length > 1, true);
     else text(isBot ? 'BOT' : 'empty', slot.x, slot.y - 192, isBot ? 22 : 18, isBot ? BOT_COLOR : '#bbb', isBot ? 'bold' : 'normal');
   }
 

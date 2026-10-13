@@ -19,12 +19,11 @@ export const POWERUPS = {
              apply: f => { if (f.cls.ultimate) f.ult = f.cls.ultimate.charge; } },
 };
 
-// What a fighter's next shot looks like: its weapon, plus a power-up and the ultimate
-// for weapons that take them.
+// What a fighter's next shot looks like: its weapon, plus a power-up (for weapons that take
+// them) and the ultimate.
 export function nextShot(f) {
   const w = f.weapon;
-  if (!w.takesPowerups) return { arrow: w.arrow, spread: w.spread || [0] };
-  const shot = (f.nextShot && POWERUPS[f.nextShot].shot) || {};
+  const shot = (w.takesPowerups && f.nextShot && POWERUPS[f.nextShot].shot) || {};
   const ult = f.ultArmed ? f.cls.ultimate.shot : {};
   return { arrow: ult.arrow || shot.arrow || w.arrow, spread: ult.spread || shot.spread || w.spread || [0] };
 }

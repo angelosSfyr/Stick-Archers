@@ -1,6 +1,9 @@
 # Stick Archers
 
 A real-time couch archery game for up to 4 players on controllers (PS5 layout) or the keyboard.
+Each player picks a class in the lobby (△): the **Archer** with bow and shield, or the
+**Pyromancer**, who throws fireballs that leave the ground burning (anyone who touches it catches
+fire) and has a fire shield that can't be held, only timed. Bots get a random class.
 Two teams stand on either side of a canyon or hill, each with stone-throwing minions
 (5 by default, set in Settings). Playing alone, you face one bot, or team up with a bot against
 two (Settings → Single player).
@@ -16,17 +19,18 @@ two (Settings → Single player).
 | Aim (sweeps up and down while held; each new press reverses) | LT | A |
 | Draw (hold), shoot (release) | RT | D |
 | Drink a potion (3 per round, +35) | □ | L |
-| Block with the shield (hold) | ○ | K |
+| Block with the shield (hold; pyromancer: tap just before a hit) | ○ | K |
 | Arm the ultimate (when the meter is full) | △ | I |
 | Pause (continue, restart, quit) | OPTIONS (start) | Esc |
 
-Menus use only LT / RT: tap to move or change, hold both to confirm.
+Menus use only LT / RT: tap to move or change, hold both to confirm. In the lobby, △ changes your class.
 The pause menu also takes ↑ ↓ to pick, ✕ to choose and ○ or START to continue.
 Every arena has more than one level: steps in the ground are too steep to walk up, so jump
 them, and trees and wooden ledges can be jumped onto from below. Get knocked off one and you take
 fall damage.
-The shield soaks up damage from the front, slowly refills while lowered, and stays broken for
-the rest of the round once it breaks. The ultimate fills with damage you deal (minions too), or all at once from the ULT balloon.
+The archer's shield soaks up damage from the front, slowly refills while lowered, and stays broken for
+the rest of the round once it breaks. The pyromancer's fire ward flares up for a moment on each tap,
+burns up whatever hits it from the front, never breaks, and needs a moment to recharge. The ultimate fills with damage you deal (minions too), or all at once from the ULT balloon.
 A round is won when the other team's players are down; minions don't count.
 
 ## Running it
@@ -78,7 +82,7 @@ platforms in `M.platforms`. The middle has to split the two sides: either set `m
 or put a hill there in `height`. The arena shows up in the settings automatically.
 
 **An arrow type:** add an entry to `ARROWS` in `src/data/weapons.js`. You can set `damageMul`,
-`alwaysKnocks`, `knock`, `blast`, `noStick`, `noInstantKill`, and how it looks (`look`). To give it new behavior, add a
+`alwaysKnocks`, `knock`, `blast`, `burn` (leaves burning ground), `noStick`, `noInstantKill`, and how it looks (`look`). To give it new behavior, add a
 field there and handle it in `hitFighter` / `arrowCollides` in `src/game/combat.js`.
 
 **A power-up:** add an entry to `POWERUPS` in `src/data/powerups.js`. Use `shot` to change the
@@ -90,14 +94,14 @@ at it. Fighters read `f.weapon` for damage, draw time, speed and spread. Set
 would need its own pose in `getPose` (`src/game/fighter.js`) and its own drawing in
 `drawStickman` (`src/render/draw-common.js`).
 
-**A shield:** add an entry to `SHIELDS` in `src/data/weapons.js` (`durability`, `regen`) and
+**A shield:** add an entry to `SHIELDS` in `src/data/weapons.js` (`durability`, `regen` for a held
+shield, or `burst` for one that flares up on each press, with the class's `cooldown.block`) and
 point a class's `shield` at it.
 
 **A character class:** add an entry to `CLASSES` in `src/data/classes.js` (the fields are listed
 at the top of that file: health, weapon, shield, ultimate, potions, speed, jump, cooldowns).
-`makeFighter` builds every fighter from its roster entry's `cls`. For now the lobby gives everyone `DEFAULT_CLASS`.
-Letting players choose means adding a picker to `src/screens/lobby.js` and
-`src/render/draw-lobby.js`, and putting the choice in each roster entry.
+`makeFighter` builds every fighter from its roster entry's `cls`. Every class without `minion` is in
+`PLAYABLE`, so players can pick it in the lobby (△) and bots can get it. Set `hat` to tell it apart.
 
 **Minions:** each team gets `settings.minions` fighters of the `minion` class
 (`src/data/classes.js`), built by `makeMinion` in `src/game/fighter.js` and driven by `botInput`

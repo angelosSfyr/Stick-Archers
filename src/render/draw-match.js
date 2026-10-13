@@ -1,8 +1,9 @@
 // The match: the world (sky, ground, fighters, arrows, effects), then the HUD on top.
-import { BLOOD, EDGE_OUT } from '../config.js';
+import { BLOOD, EDGE_OUT, FIRE } from '../config.js';
 import { T } from '../core/clock.js';
 import { settings } from '../core/settings.js';
 import { POWERUPS } from '../data/powerups.js';
+import { ARROWS } from '../data/weapons.js';
 import { M, inPlay } from '../game/match.js';
 import { getPose } from '../game/fighter.js';
 import { groundY } from '../game/terrain.js';
@@ -10,7 +11,7 @@ import { CLOUD_PARALLAX, CLOUD_PUFFS, CLOUD_SPAN } from '../game/sky.js';
 import { mod } from '../util.js';
 import { cam, screenTransform, toScreen, visibleWorld, worldTransform } from './camera.js';
 import { ctx, line, text } from './canvas.js';
-import { drawArrow, drawStickman } from './draw-common.js';
+import { drawArrow, drawStickman, flame } from './draw-common.js';
 import { drawFighterOverlay, drawHUD, drawStreaks } from './draw-hud.js';
 
 function drawClouds() {
@@ -124,11 +125,12 @@ function drawAimGuides(f) {
 }
 
 function drawFlyingArrow(a) {
+  const fireball = (ARROWS[a.kind].look || {}).fireball;   // leaves a trail of smoke and fire
   ctx.lineCap = 'round';
   for (let i = 1; i < a.trail.length; i++) {
     const k = i / a.trail.length;
-    ctx.strokeStyle = `rgba(0,0,0,${0.22 * k})`;
-    ctx.lineWidth = 1 + 3 * k;
+    ctx.strokeStyle = fireball ? `rgba(226,88,27,${0.45 * k})` : `rgba(0,0,0,${0.22 * k})`;
+    ctx.lineWidth = fireball ? fireball * 1.8 * k : 1 + 3 * k;
     line(a.trail[i - 1].x, a.trail[i - 1].y, a.trail[i].x, a.trail[i].y);
   }
   drawArrow(a.x, a.y, Math.atan2(a.vy, a.vx), '#000', Math.sin(T * 50) * 1.5, a.kind);
@@ -160,6 +162,13 @@ function drawParticles() {
       const a = p.rot + p.t * 12;
       line(p.x - Math.cos(a) * 6, p.y - Math.sin(a) * 6, p.x + Math.cos(a) * 6, p.y + Math.sin(a) * 6);
       ctx.globalAlpha = 1;
+    } else if (p.kind === 'ember') {
+      ctx.fillStyle = k > 0.5 ? '#ffc23a' : FIRE;
+      ctx.globalAlpha = k;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.5 + 1.5 * k, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
     } else if (p.kind === 'blast') {
       const r = 15 + (p.r - 15) * (1 - k * k);
       ctx.fillStyle = `rgba(0,0,0,${0.12 * k})`;
@@ -173,6 +182,27 @@ function drawParticles() {
       ctx.strokeStyle = `rgba(0,0,0,${k})`;
       ctx.lineWidth = 3;
       line(p.x, p.y, p.x - p.vx * 0.05, p.y - p.vy * 0.05);
+    }
+  }
+}
+
+// burning ground: a glow, and flames that grow in, flicker, and die down at the end
+function drawFires() {
+  for (const fire of M.fires) {
+    const { time } = fire.burn, life = Math.min(1, fire.t / 0.25, (time - fire.t) / 0.8);
+    const mid = (fire.x1 + fire.x2) / 2, half = (fire.x2 - fire.x1) / 2 || 1;
+    const n = Math.max(3, Math.round(half / 14));
+    for (let i = 0; i <= n; i++) {
+      const x = fire.x1 + (fire.x2 - fire.x1) * i / n;
+      const y = fire.plat ? fire.y : groundY(x);
+      if (y > fire.y + 400) continue;                 // not down the canyon wall
+      const edge = 1 - 0.6 * ((x - mid) / half) ** 2;
+      const h = (26 + 18 * Math.sin(T * 13 + i * 1.7) + 10 * Math.sin(T * 29 + i * 4.1)) * edge * life;
+      ctx.fillStyle = `rgba(226,88,27,${0.18 * life})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 2, half / n + 6, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      flame(x, y + 4, h * (1 + fire.burn.radius / 400), 9 + 3 * edge);
     }
   }
 }
@@ -244,6 +274,7 @@ export function drawMatch() {
   drawBorders();
   drawLedges();
   drawStains();
+  drawFires();
   drawBalloons();
   for (const f of M.fighters) {
     if (f.gone) continue;

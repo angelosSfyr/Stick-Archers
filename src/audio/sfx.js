@@ -76,6 +76,22 @@ export const SFX = {
   throw(power) {          // a stone leaving the hand
     noise({ dur: 0.16, vol: 0.2 + 0.1 * power, type: 'bandpass', freq: 900, q: 0.7, slideTo: 2200 });
   },
+  fireball(power) {       // a fireball leaving the hand: a rushing roar
+    noise({ dur: 0.35, vol: 0.25 + 0.15 * power, type: 'lowpass', freq: 400, slideTo: 1400 });
+    tone({ freq: 90, type: 'sawtooth', dur: 0.3, vol: 0.06, slideTo: 160 });
+  },
+  ignite(size = 1) {      // fire catching where a fireball lands (size: bigger for the ultimate)
+    noise({ dur: 0.5 * size, vol: 0.35, type: 'lowpass', freq: 1200, slideTo: 250 });
+    noise({ dur: 0.25, vol: 0.15, type: 'highpass', freq: 3000 });
+    tone({ freq: 70, dur: 0.4 * size, vol: 0.3, slideTo: 40 });
+  },
+  ward() {                // fire shield flaring up
+    noise({ dur: 0.3, vol: 0.3, type: 'bandpass', freq: 600, q: 0.8, slideTo: 2400 });
+  },
+  fizzle() {              // a shot burned up by the fire shield
+    noise({ dur: 0.25, vol: 0.3, type: 'highpass', freq: 2500, slideTo: 6000 });
+    tone({ freq: 500, type: 'triangle', dur: 0.15, vol: 0.08, slideTo: 150 });
+  },
   shieldBreak() {
     noise({ dur: 0.35, vol: 0.4, type: 'highpass', freq: 1800 });
     tone({ freq: 1400, dur: 0.4, vol: 0.12, slideTo: 300 });

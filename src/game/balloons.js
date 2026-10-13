@@ -48,6 +48,7 @@ export function popBalloon(b, a) {
   }
   const f = a.owner;
   if (!f.alive || f.minion) return;                // a minion's stone just pops it
+  if (info.shot && !f.weapon.takesPowerups) return; // nothing to change on a fireball
   M.popups.push({ x: b.x, y: b.y - 50, text: `${info.name} → ${f.name}`, color: info.color, t: 0 });
   if (info.shot) f.nextShot = b.type;
   else info.apply(f);

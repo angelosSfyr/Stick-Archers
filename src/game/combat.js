@@ -1,12 +1,12 @@
 // Shooting, arrows in flight, and what they do when they hit something.
-import { ARROW_LEN, GRAVITY, HARD_HIT_POWER, SHAKY_SHOTS, WIND_MAX } from '../config.js';
+import { ARROW_LEN, FIRE, GRAVITY, HARD_HIT_POWER, SHAKY_SHOTS, WIND_MAX } from '../config.js';
 import { settings } from '../core/settings.js';
 import { play } from '../audio/sfx.js';
 import { nextShot } from '../data/powerups.js';
 import { ARROWS } from '../data/weapons.js';
 import { lerp, rand } from '../util.js';
 import { popBalloon } from './balloons.js';
-import { bleed, dust, sparks } from './effects.js';
+import { bleed, dust, embers, sparks } from './effects.js';
 import { getPose, hitZone, hurt, knock } from './fighter.js';
 import { M, isEnemy } from './match.js';
 import { groundY } from './terrain.js';
@@ -24,10 +24,8 @@ export function launch(f) {
                     owner: f, team: f.team, kind, power: f.power, spent: false, t: 0, trail: [] });
   }
   play(f.weapon.sound, f.power);
-  if (f.weapon.takesPowerups) {
-    f.nextShot = null;
-    if (f.ultArmed) { f.ultArmed = false; f.ult = 0; }
-  }
+  if (f.weapon.takesPowerups) f.nextShot = null;
+  if (f.ultArmed) { f.ultArmed = false; f.ult = 0; }
   if (f.shaky > 0) f.shaky--;
   f.drawing = false;
   f.power = 0;
@@ -36,8 +34,13 @@ export function launch(f) {
 }
 
 // A raised shield soaks up damage from the front. Returns the damage that gets through
-// (only once the shield breaks).
+// (only once the shield breaks). A burst shield burns it all up and never breaks.
 function shieldTakes(f, dmg) {
+  if (f.shield.burst) {
+    play('fizzle');
+    M.popups.push({ x: f.x, y: f.y - 200, text: 'BURNED UP', color: FIRE, t: 0 });
+    return 0;
+  }
   f.shieldHp -= dmg;
   play('block');
   M.popups.push({ x: f.x, y: f.y - 200, text: 'BLOCKED', t: 0 });
@@ -53,7 +56,8 @@ function shieldTakes(f, dmg) {
 
 const fromFront = (f, x) => (x - f.x) * f.facing > 0;
 
-// An arrow reached a fighter. Returns 'blocked' when a shield or barrier turned it away.
+// An arrow reached a fighter. Returns 'blocked' when a shield or barrier turned it away,
+// 'burned' when a burst shield burned it up.
 function hitFighter(f, zone, x, y, a) {
   const ang = Math.atan2(a.vy, a.vx);
   const kind = ARROWS[a.kind];
@@ -70,6 +74,7 @@ function hitFighter(f, zone, x, y, a) {
   let dmg = a.owner.weapon.damage[part];
   if (kind.damageMul) dmg = Math.round(dmg * kind.damageMul);
   if (f.blocking && (zone === 'shield' || a.vx * f.facing < 0)) {
+    if (f.shield.burst) { shieldTakes(f, dmg); embers(x, y, 14); return 'burned'; }
     sparks(x, y, ang, 10);
     if (kind.blast) { explode(x, y, a.owner, f, kind.blast); a.kind = 'normal'; }
     dmg = shieldTakes(f, dmg);
@@ -90,6 +95,10 @@ function hitFighter(f, zone, x, y, a) {
   // hard hits (heavy arrows, or shots drawn with lots of power) push the fighter back
   if ((kind.knock ?? 1) > 0 && (kind.alwaysKnocks || a.power >= HARD_HIT_POWER)) knock(f, Math.sign(a.vx), kind.knock ?? 1);
   if (kind.blast) explode(x, y, a.owner, null, kind.blast);
+  if (kind.burn) {
+    const plat = f.onPlatform && M.platforms.find(p => f.x >= p.x1 && f.x <= p.x2 && Math.abs(p.y - f.y) < 2);
+    ignite(f.x, plat ? plat.y : groundY(f.x), plat, a.owner, kind.burn);
+  }
   return 'hit';
 }
 
@@ -124,6 +133,44 @@ function explode(x, y, owner, spare, blast) {
   }
 }
 
+// Sets the ground (or a ledge, `plat`) on fire around x. Fire on a ledge stays on it.
+function ignite(x, y, plat, owner, burn) {
+  play('ignite', burn.radius / 90);
+  const r = burn.radius;
+  M.fires.push({ x1: plat ? Math.max(x - r, plat.x1) : x - r, x2: plat ? Math.min(x + r, plat.x2) : x + r,
+                 y, plat: !!plat, owner, burn, t: 0 });
+  embers(x, y, Math.round(burn.radius / 6));
+}
+
+// A fire patch reaches a fighter whose feet are on the same burning ground (jumping over it is safe).
+const inFire = (f, fire) => f.x >= fire.x1 && f.x <= fire.x2 &&
+  Math.abs(f.y - (fire.plat ? fire.y : groundY(f.x))) < 12 && (fire.plat ? f.onPlatform : !f.onPlatform);
+
+// Fire patches burn down; enemies touching one catch fire, and burning fighters lose health.
+export function updateFires(dt) {
+  for (const fire of M.fires) fire.t += dt;
+  M.fires = M.fires.filter(fire => fire.t < fire.burn.time);
+  if (M.phase !== 'play' || M.endT !== null) return;    // once a round is decided, fire hurts nobody
+  for (const f of M.fighters) {
+    if (!f.alive) { f.burnT = 0; continue; }
+    for (const fire of M.fires) {
+      if (!isEnemy(fire.owner, f) || !inFire(f, fire)) continue;
+      if (!f.burnT) M.popups.push({ x: f.x, y: f.y - 200 * f.size, text: 'ON FIRE', color: FIRE, t: 0 });
+      f.burnT = Math.max(f.burnT, fire.burn.after);
+      f.burn = fire.burn;
+      f.burnBy = fire.owner;
+    }
+    if (!f.burnT) continue;
+    f.burnT = Math.max(0, f.burnT - dt);
+    f.burnDmg += f.burn.dps * dt;                  // whole points only, so health stays a whole number
+    if (f.burnDmg >= 1) {
+      const dmg = Math.floor(f.burnDmg);
+      f.burnDmg -= dmg;
+      hurt(f, dmg, f.burnBy);
+    }
+  }
+}
+
 function arrowCollides(a, px, py) {
   const ang = Math.atan2(a.vy, a.vx), c = Math.cos(ang), s = Math.sin(ang);
   if (!a.spent) {
@@ -134,7 +181,9 @@ function arrowCollides(a, px, py) {
       if (!f.alive || f.gone || !isEnemy(a.owner, f)) continue;   // no friendly fire in team games
       const zone = hitZone(f, px, py);
       if (!zone) continue;
-      if (hitFighter(f, zone, px, py, a) === 'blocked') {
+      const res = hitFighter(f, zone, px, py, a);
+      if (res === 'burned') return { x: px, y: py };
+      if (res === 'blocked') {
         a.spent = true;                                // bounces off the shield and drops
         a.vx *= -0.3;
         a.vy = -Math.abs(a.vy) * 0.3 - 120;
@@ -143,12 +192,13 @@ function arrowCollides(a, px, py) {
       return { x: px, y: py };
     }
   }
-  const kind = ARROWS[a.kind], blast = !a.spent && kind.blast;
+  const kind = ARROWS[a.kind], blast = !a.spent && kind.blast, burn = !a.spent && kind.burn;
   const gy = groundY(px);
   if (py >= gy) {
     if (!kind.noStick) M.stuck.push({ x: px + c * 12, y: py + s * 12, ang, wob: 1 });
     dust(px, gy, a.vx);
     if (blast) explode(px, gy, a.owner, null, blast);
+    if (burn) ignite(px, gy, null, a.owner, burn);
     return { x: px, y: gy };
   }
   for (const p of M.platforms) {
@@ -156,6 +206,7 @@ function arrowCollides(a, px, py) {
       if (!kind.noStick) M.stuck.push({ x: px + c * 6, y: py + s * 6, ang, wob: 1 });
       dust(px, p.y, a.vx);
       if (blast) explode(px, p.y, a.owner, null, blast);
+      if (burn) ignite(px, p.y, p, a.owner, burn);
       return { x: px, y: py };
     }
   }

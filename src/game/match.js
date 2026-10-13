@@ -11,7 +11,7 @@ import { pauseMatch, startPressed, updatePause } from '../screens/pause.js';
 import { showScreen } from '../screens/screens.js';
 import { rand } from '../util.js';
 import { balloonCount, spawnBalloon, updateBalloons } from './balloons.js';
-import { updateArrows } from './combat.js';
+import { updateArrows, updateFires } from './combat.js';
 import { controlFighter, idle } from './controls.js';
 import { updateParticles } from './effects.js';
 import { animateFighter, makeFighter, makeMinion } from './fighter.js';
@@ -41,7 +41,7 @@ export function startMatch(roster) {
     vmax: Math.sqrt(GRAVITY * (settings.distance + 700)),
     round: 0, need: Math.floor(settings.rounds / 2) + 1,
     score: ffa ? Object.fromEntries(roster.map(r => [r.name, 0])) : { L: 0, R: 0 },
-    terrain: null, fighters: [], platforms: [], arrows: [], stuck: [], particles: [], popups: [],
+    terrain: null, fighters: [], platforms: [], arrows: [], fires: [], stuck: [], particles: [], popups: [],
     balloons: [], balloonTimer: 0, stains: [], pools: [],
     wind: 0, cloudDrift: 0, clouds: makeClouds(), streaks: makeStreaks(),
     phase: '', phaseT: 0, endT: null, roundWinner: null,
@@ -65,6 +65,7 @@ function startRound() {
     for (const side of ['L', 'R']) for (let i = 0; i < settings.minions; i++) M.fighters.push(makeMinion(side, i, settings.minions));
   }
   M.arrows = [];
+  M.fires = [];
   M.stuck = [];
   M.particles = [];
   M.popups = [];
@@ -121,6 +122,7 @@ export function updateMatch(dt) {
   }
 
   updateArrows(wdt * SPEED_SCALE[settings.speed]);
+  updateFires(wdt);
   updateParticles(wdt);
   for (const p of M.popups) p.t += wdt;
   M.popups = M.popups.filter(p => p.t < 1.4);

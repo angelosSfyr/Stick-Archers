@@ -1,13 +1,45 @@
 // Drawing shared by the lobby and the match: arrows and stick figures.
-import { ARROW_LEN } from '../config.js';
+import { ARROW_LEN, FIRE } from '../config.js';
 import { T } from '../core/clock.js';
 import { nextShot } from '../data/powerups.js';
 import { ARROWS } from '../data/weapons.js';
 import { getPose } from '../game/fighter.js';
+import { lerp } from '../util.js';
 import { ctx, line } from './canvas.js';
+
+// A flickering tongue of fire h long and w wide at its base, pointing along ang (default: up).
+export function flame(x, y, h, w, ang = -Math.PI / 2) {
+  if (h < 2) return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang + Math.PI / 2);
+  for (const [k, color] of [[1, FIRE], [0.55, '#ffc23a']]) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(-w * k, 0);
+    ctx.quadraticCurveTo(-w * k, -h * k * 0.55, 0, -h * k);
+    ctx.quadraticCurveTo(w * k, -h * k * 0.55, w * k, 0);
+    ctx.quadraticCurveTo(0, w * k * 0.6, -w * k, 0);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+export function drawFireball(x, y, r) {
+  const k = 1 + Math.sin(T * 37 + x) * 0.08;
+  ctx.fillStyle = FIRE;
+  ctx.beginPath();
+  ctx.arc(x, y, r * 1.25 * k, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffc23a';
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.75, 0, Math.PI * 2);
+  ctx.fill();
+}
 
 export function drawArrow(tx, ty, ang, color = '#000', flutter = 0, kind = 'normal') {
   const look = ARROWS[kind].look || {};
+  if (look.fireball) { drawFireball(tx, ty, look.fireball); return; }
   if (look.stone) {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -111,7 +143,7 @@ export function drawStickman(f, color, showNock) {
       }
     }
   }
-  if (f.blocking && f.alive) {                 // shield held up in front
+  if (f.blocking && f.alive && !f.shield.burst) {   // shield held up in front
     const s = P.shieldAt, h = P.shieldHalf, w = 9 * sz;
     ctx.fillStyle = '#fff';
     ctx.lineWidth = 5;
@@ -123,6 +155,31 @@ export function drawStickman(f, color, showNock) {
     ctx.globalAlpha = 1 - f.shieldHp / f.shield.durability;   // gets darker as it wears out
     ctx.fill();
     ctx.globalAlpha = 1;
+  }
+  if (f.blocking && f.alive && f.shield.burst) {   // a wall of fire in front, dying down
+    const s = P.shieldAt, h = P.shieldHalf, k = Math.min(1, f.wardT / f.shield.burst * 1.5);
+    for (let i = 0; i < 5; i++) {
+      const y = s.y - h + (i + 0.5) * h * 2 / 5;
+      flame(s.x - f.facing * 6, y, (34 + Math.sin(T * 40 + i * 2) * 8) * k * sz, 13 * sz, f.facing > 0 ? 0 : Math.PI);
+    }
+  }
+  if (f.cls && f.cls.hat === 'wizard') {       // pointed hat, its tip flopping back
+    const h = P.head;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(h.x - 17 * sz, h.y - 12 * sz);
+    ctx.quadraticCurveTo(h.x - f.facing * 6 * sz, h.y - 40 * sz, h.x - f.facing * 26 * sz, h.y - 56 * sz);
+    ctx.quadraticCurveTo(h.x + f.facing * 4 * sz, h.y - 36 * sz, h.x + 17 * sz, h.y - 12 * sz);
+    ctx.fill();
+    ctx.lineWidth = 5 * sz;
+    line(h.x - 28 * sz, h.y - 12 * sz, h.x + 28 * sz, h.y - 12 * sz);
+  }
+  if (f.burnT > 0 && f.alive) {                // on fire
+    for (const [a, b, i] of [[P.hip, P.neck, 0], [P.hip, P.footL, 1], [P.hip, P.footR, 2], [P.neck, P.head, 3]]) {
+      for (const t of [0.25, 0.75]) {
+        flame(lerp(a.x, b.x, t), lerp(a.y, b.y, t), (20 + Math.sin(T * 30 + i * 3 + t * 7) * 7) * sz, 7 * sz);
+      }
+    }
   }
   for (const s of f.stuck) drawArrow(f.x + s.x, f.y + s.y, s.ang + Math.sin(T * 45) * 0.2 * s.wob);
   ctx.restore();

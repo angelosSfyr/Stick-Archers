@@ -29,11 +29,12 @@ function baseFighter(cls, side, x, y, extra) {
     cd: {},                        // cooldowns left, by action (see `cooldown` in src/data/classes.js)
     walk: 0, crouching: false, crouch: 0, blocking: false,
     stride: 0, run: 0, air: 0, landT: 0,                     // leg animation (see legs())
-    shield, shieldHp: shield ? shield.durability : 0, shieldBroken: false,
+    shield, shieldHp: shield ? shield.durability : 0, shieldBroken: false, blockHeld: false, wardT: 0,
     potions: cls.potions || 0, ult: 0, ultArmed: false,
     flinch: 0, twang: 0, stuck: [],
     onPlatform: false, falling: false, knocked: false, vx: 0, vy: 0, slideV: 0,
     shaky: 0, barrier: false, nextShot: null,                // hit effects and power-ups
+    burnT: 0, burnDmg: 0, burn: null, burnBy: null,          // on fire (see updateFires in combat.js)
     bleedT: 0, bleedAt: null, pooled: false,                 // blood
     ...extra,
   };
@@ -302,7 +303,8 @@ export function animateFighter(f, dt) {
   for (const k in f.cd) f.cd[k] = Math.max(0, f.cd[k] - dt);
   for (const s of f.stuck) s.wob = Math.max(0, s.wob - dt / 0.6);
   f.crouch = f.crouching ? Math.min(1, f.crouch + dt * 10) : Math.max(0, f.crouch - dt * 10);
-  if (f.shield && !f.blocking && !f.shieldBroken) f.shieldHp = Math.min(f.shield.durability, f.shieldHp + f.shield.regen * dt);
+  f.wardT = Math.max(0, f.wardT - dt);
+  if (f.shield && f.shield.durability && !f.blocking && !f.shieldBroken) f.shieldHp = Math.min(f.shield.durability, f.shieldHp + f.shield.regen * dt);
   const x0 = f.x;
   moveFighter(f, dt);
   // legs: the stride follows the ground covered, so feet don't slide

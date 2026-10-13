@@ -29,8 +29,8 @@ const cooldown = (f, action) => { f.cd[action] = f.cls.cooldown[action] || 0; };
 export function controlFighter(f, dt) {
   const inp = f.bot ? botInput(f, dt) : padInput(f);
   f.crouching = inp.crouch && !f.falling;
+  raiseShield(f, inp.block);
   // shield up: nothing else works (crouching and being mid-jump still do)
-  f.blocking = inp.block && !!f.shield && !f.shieldBroken;
   f.walk = 0;
   if (f.blocking) {
     f.drawing = false;
@@ -47,10 +47,26 @@ export function controlFighter(f, dt) {
   aimAndShoot(f, inp.lt, inp.rt, dt);
 }
 
+// A held shield is up while ○ is; a burst shield goes up for a moment on each press
+// (holding ○ doesn't keep it up), once its cooldown is over.
+function raiseShield(f, held) {
+  const s = f.shield, press = held && !f.blockHeld;
+  f.blockHeld = held;
+  if (!s) { f.blocking = false; return; }
+  if (!s.burst) { f.blocking = held && !f.shieldBroken; return; }
+  if (press && ready(f, 'block')) {
+    f.wardT = s.burst;
+    cooldown(f, 'block');
+    play('ward');
+  }
+  f.blocking = f.wardT > 0;
+}
+
 // Someone who isn't being controlled right now just stands there.
 export function idle(f) {
   f.walk = 0;
   f.blocking = false;
+  f.wardT = 0;
   f.crouching = false;
   f.drawing = false;
   f.power = 0;

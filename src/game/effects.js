@@ -1,4 +1,4 @@
-// Particles: dust, sparks, blood. Drawn by drawParticles in src/render/draw-match.js.
+// Particles: dust, sparks, embers, blood. Drawn by drawParticles in src/render/draw-match.js.
 import { settings } from '../core/settings.js';
 import { play } from '../audio/sfx.js';
 import { rand } from '../util.js';
@@ -40,10 +40,19 @@ export function sparks(x, y, ang, n) {
   }
 }
 
+// glowing bits flying up out of a fire
+export function embers(x, y, n) {
+  for (let i = 0; i < n; i++) {
+    M.particles.push({ kind: 'ember', x: x + rand(-20, 20), y: y - 4, vx: rand(-160, 160), vy: -rand(120, 380),
+                       t: 0, life: rand(0.4, 0.9) });
+  }
+}
+
 export function updateParticles(dt) {
   for (const p of M.particles) {
     p.t += dt;
     if (p.kind === 'speck' || p.kind === 'shred') p.vy += 900 * dt;
+    if (p.kind === 'ember') p.vy += 300 * dt;
     if (p.kind === 'blood') p.vy += 1100 * dt;
     const prevY = p.y;
     p.x += p.vx * dt;

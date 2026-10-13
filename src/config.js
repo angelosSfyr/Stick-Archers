@@ -23,6 +23,7 @@ export const CANYON_HALF = 110;            // half the width of the deadly canyo
 export const STICK_DEAD = 0.35;            // controller stick dead zone (move); down needs twice that
 export const SHAKY_SHOTS = 2;              // shots with a trembling bow after an arm hit
 export const BLOOD = '#a8101b';
+export const FIRE = '#e2581b';             // fire text and flames
 
 export const PLAYER_COLORS = ['#1f6feb', '#d93636', '#1a9e4b', '#e08a00'];
 export const BOT_COLOR = '#777';
