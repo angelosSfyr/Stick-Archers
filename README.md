@@ -1,7 +1,9 @@
 # Stick Archers
 
 A real-time couch archery game for up to 4 players on controllers (PS5 layout) or the keyboard.
-Two teams stand on either side of a canyon or hill, each with 5 stone-throwing minions.
+Two teams stand on either side of a canyon or hill, each with stone-throwing minions
+(5 by default, set in Settings). Playing alone, you face one bot, or team up with a bot against
+two (Settings → Single player).
 
 ## Controls
 
@@ -89,7 +91,7 @@ at the top of that file: health, weapons, shield, ultimate, potions, speed, jump
 Letting players choose means adding a picker to `src/screens/lobby.js` and
 `src/render/draw-lobby.js`, and putting the choice in each roster entry.
 
-**Minions:** each team gets `MINIONS_PER_SIDE` fighters of the `minion` class
+**Minions:** each team gets `settings.minions` fighters of the `minion` class
 (`src/data/classes.js`), built by `makeMinion` in `src/game/fighter.js` and driven by `botInput`
 in `src/game/bot.js`. They're ordinary fighters with `f.minion` set: combat works on them as on
 anyone, damage dealt to them charges the ultimate, and `roundEnding` in `src/game/match.js` leaves

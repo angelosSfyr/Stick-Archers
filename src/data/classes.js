@@ -28,4 +28,3 @@ export const CLASSES = {
 
 export const DEFAULT_CLASS = 'archer';
 export const MINION_CLASS = 'minion';
-export const MINIONS_PER_SIDE = 5;

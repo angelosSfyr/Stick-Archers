@@ -5,7 +5,6 @@ import { anyPadEvent, pads } from '../core/input.js';
 import { settings } from '../core/settings.js';
 import { play } from '../audio/sfx.js';
 import { ARENAS } from '../data/arenas.js';
-import { MINIONS_PER_SIDE } from '../data/classes.js';
 import { updateCamera } from '../render/camera.js';
 import { slotSide } from '../screens/lobby.js';
 import { showScreen } from '../screens/screens.js';
@@ -61,7 +60,7 @@ function startRound() {
   M.fighters = M.roster.map(makeFighter);
   M.platforms = M.fighters.filter(f => f.onPlatform).map(f => ({ x1: f.x - 60, x2: f.x + 60, y: f.y }));
   if (!M.ffa) {
-    for (const side of ['L', 'R']) for (let i = 0; i < MINIONS_PER_SIDE; i++) M.fighters.push(makeMinion(side, i, MINIONS_PER_SIDE));
+    for (const side of ['L', 'R']) for (let i = 0; i < settings.minions; i++) M.fighters.push(makeMinion(side, i, settings.minions));
   }
   M.arrows = [];
   M.stuck = [];

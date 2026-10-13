@@ -46,7 +46,8 @@ export function lobbyStatus() {
     else if (n < 2) return { ...base, msg: 'Free-for-all needs 2+ players - or pick "bots fill empty spots" in Settings' };
     const plural = (k, word) => `${k} ${word}${k === 1 ? '' : 's'}`;
     mode = `Free-for-all · ${plural(n, 'player')}${bots.length ? ' + ' + plural(bots.length, 'bot') : ''}`;
-  } else if (n === 1) { bots = [3 - humans[0].slot]; mode = '1 player vs BOT'; }
+  } else if (n === 1 && settings.solo === '2v2') { bots = empty; mode = '2 vs 2 · you + BOT vs 2 BOTS'; }
+  else if (n === 1) { bots = [3 - humans[0].slot]; mode = '1 player vs BOT'; }
   else if (n === 2) {
     if (left === 0 || right === 0) return { ...base, msg: '1 vs 1 - stand on opposite sides' };
     mode = '1 vs 1';
