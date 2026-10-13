@@ -16,12 +16,12 @@ export const CLASSES = {
     name: 'Archer', maxHp: 100, weapon: 'bow', secondary: 'stones', shield: 'buckler',
     ultimate: { name: 'TRIPLE ARROW', charge: 150, shot: { spread: [-5, 0, 5] } },
     potions: 3, maxPotions: 5, potionHeal: 35,
-    moveSpeed: 220, jumpHeight: 140,
+    moveSpeed: 330, jumpHeight: 420,   // high enough to jump onto the 2 v 2 platform (PLATFORM_RISE)
     cooldown: { shot: 0.6, swap: 0.3, potion: 1.5 },
   },
   minion: {
     name: 'Minion', maxHp: 60, weapon: 'stone', size: 0.6, minion: true,
-    moveSpeed: 90, jumpHeight: 0,
+    moveSpeed: 135, jumpHeight: 0,
     cooldown: { shot: 2.2 },
   },
 };
